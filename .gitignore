@@ -1,0 +1,22 @@
+# 依存パッケージ・ビルド結果
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# 環境ごとの設定(接続先や鍵を書いたファイルは公開しない)
+.env
+.env.*
+
+# 開発中に作られる控えPDFなど
+documents/
+
+# エディタ・OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>御見積書 {{ quote.quote_number or "" }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 20mm;
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-size: 8pt;
+      color: #5d6772;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "IPAexGothic", "IPAGothic", "Noto Sans CJK JP", sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.6;
+    color: #1c2530;
+  }
+  p { margin: 0; }
+  h1 {
+    margin: 0 0 8mm;
+    text-align: center;
+    font-size: 18pt;
+    letter-spacing: 0.6em;
+    padding-left: 0.6em;
+  }
+  .head { display: flex; justify-content: space-between; gap: 10mm; }
+  .to { flex: 1; }
+  .to .name {
+    font-size: 13pt;
+    font-weight: bold;
+    padding-bottom: 1.5mm;
+    border-bottom: 0.6pt solid #1c2530;
+    margin-bottom: 3mm;
+  }
+  .to .honorific { font-size: 10.5pt; margin-left: 0.5em; }
+  .meta { width: 72mm; }
+  .meta table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+  .meta th { text-align: left; font-weight: normal; color: #5d6772; width: 22mm; padding: 0.3mm 0; }
+  .meta td { text-align: right; padding: 0.3mm 0; }
+  .issuer .name { font-weight: bold; font-size: 10.5pt; }
+  .issuer p { font-size: 8.5pt; }
+
+  .amount {
+    display: flex;
+    align-items: baseline;
+    gap: 6mm;
+    margin: 7mm 0 6mm;
+    padding: 2.5mm 4mm;
+    border: 1pt solid #22385c;
+    width: 110mm;
+  }
+  .amount .label { font-size: 10pt; }
+  .amount .value { font-size: 16pt; font-weight: bold; }
+  .amount .note { font-size: 8.5pt; color: #5d6772; }
+
+  table.lines { width: 100%; border-collapse: collapse; }
+  table.lines th {
+    background: #22385c;
+    color: #fff;
+    font-weight: normal;
+    font-size: 8.5pt;
+    padding: 1.6mm 2mm;
+    text-align: left;
+  }
+  table.lines td { padding: 1.6mm 2mm; border-bottom: 0.4pt solid #c9cfcb; vertical-align: top; }
+  table.lines .num { text-align: right; white-space: nowrap; }
+  table.lines tr { page-break-inside: avoid; }
+  .mark { color: #b42e2a; margin-left: 0.3em; }
+
+  .bottom { display: flex; justify-content: space-between; gap: 8mm; margin-top: 5mm; }
+  .remarks { flex: 1; font-size: 8.5pt; }
+  .remarks .title { font-weight: bold; margin-bottom: 1mm; }
+  .remarks .body { white-space: pre-wrap; border: 0.4pt solid #c9cfcb; padding: 2mm; min-height: 14mm; }
+  table.totals { width: 78mm; border-collapse: collapse; }
+  table.totals th { text-align: left; font-weight: normal; padding: 1mm 2mm; }
+  table.totals td { text-align: right; padding: 1mm 2mm; white-space: nowrap; }
+  table.totals .sub th, table.totals .sub td { font-size: 8.5pt; color: #3d4752; }
+  table.totals .grand th, table.totals .grand td { border-top: 0.8pt solid #1c2530; font-weight: bold; font-size: 10.5pt; }
+
+  .footnote { margin-top: 3mm; font-size: 8pt; color: #5d6772; }
+
+  .draft {
+    position: fixed;
+    top: 95mm;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 72pt;
+    font-weight: bold;
+    color: rgba(180, 46, 42, 0.12);
+    transform: rotate(-24deg);
+  }
+</style>
+</head>
+<body>
+{% if draft %}<div class="draft">下書き</div>{% endif %}
+
+<h1>御見積書</h1>
+
+<div class="head">
+  <div class="to">
+    <p class="name">{{ quote.customer_name }}<span class="honorific">{{ quote.customer_honorific }}</span></p>
+    {% if quote.customer_address %}<p>{{ quote.customer_address }}</p>{% endif %}
+    {% if quote.title %}<p>件名:{{ quote.title }}</p>{% endif %}
+    <p>下記のとおりお見積り申し上げます。</p>
+  </div>
+  <div class="meta">
+    <table>
+      <tr><th>見積番号</th><td>{{ quote.quote_number or "(発行時に採番)" }}</td></tr>
+      <tr><th>発行日</th><td>{{ quote.issue_date | jdate if quote.issue_date else "(未発行)" }}</td></tr>
+      <tr><th>有効期限</th><td>{{ quote.valid_until | jdate if quote.valid_until else "(発行日から設定日数)" }}</td></tr>
+    </table>
+    <div class="issuer">
+      <p class="name">{{ company.name }}</p>
+      {% if company.postal_code %}<p>〒{{ company.postal_code }}</p>{% endif %}
+      {% if company.address %}<p>{{ company.address }}</p>{% endif %}
+      {% if company.phone %}<p>TEL {{ company.phone }}</p>{% endif %}
+      {% if company.registration_number %}<p>登録番号 {{ company.registration_number }}</p>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="amount">
+  <span class="label">お見積金額</span>
+  <span class="value">¥{{ quote.total_amount | yen }}</span>
+  <span class="note">(税込)</span>
+</div>
+
+<table class="lines">
+  <thead>
+    <tr>
+      <th style="width: 46%">品名</th>
+      <th class="num">数量</th>
+      <th>単位</th>
+      <th class="num">単価</th>
+      <th class="num">金額(税抜)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in quote.lines %}
+    <tr>
+      <td>{{ line.description }}{% if line.tax_category == "reduced" %}<span class="mark">※</span>{% endif %}</td>
+      <td class="num">{{ line.quantity | qty }}</td>
+      <td>{{ line.unit or "" }}</td>
+      <td class="num">{{ line.unit_price | qty }}</td>
+      <td class="num">{{ line.amount | yen }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="bottom">
+  <div class="remarks">
+    {% if quote.remarks %}
+    <p class="title">備考</p>
+    <p class="body">{{ quote.remarks }}</p>
+    {% endif %}
+  </div>
+  <table class="totals">
+    {% for s in quote.tax_summaries %}
+    <tr class="sub"><th>{{ s.tax_category | tax_label }} 小計</th><td>¥{{ s.taxable_amount | yen }}</td></tr>
+    {% if s.tax_rate > 0 %}
+    <tr class="sub"><th>{{ s.tax_category | tax_label }} 消費税</th><td>¥{{ s.tax_amount | yen }}</td></tr>
+    {% endif %}
+    {% endfor %}
+    <tr><th>小計</th><td>¥{{ quote.subtotal_amount | yen }}</td></tr>
+    <tr><th>消費税</th><td>¥{{ quote.tax_amount | yen }}</td></tr>
+    <tr class="grand"><th>合計</th><td>¥{{ quote.total_amount | yen }}</td></tr>
+  </table>
+</div>
+
+{% if quote.lines | selectattr("tax_category", "equalto", "reduced") | list %}
+<p class="footnote">※は軽減税率(8%)の対象品目です。</p>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,191 @@
+"""取引先ごとのまとめ入金。
+
+取引先が複数の請求書の分をまとめて振り込んだとき、1回の入金として登録し、
+未入金の請求書へ古い順(請求日の早い順)に割り当てる。
+割り当ては請求書ごとの入金(payments)として記録するので、請求書の残額・入金済の判定は今までと同じ。
+"""
+
+from datetime import date, datetime
+from decimal import Decimal
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, status
+from psycopg import Connection
+from pydantic import BaseModel, Field
+
+from app.auth import TenantConn
+from app.clock import today
+from app.documents import get_customer
+from app.fields import OptionalHalfwidthStr
+from app.routers.invoices import sync_paid_status
+
+router = APIRouter(prefix="/api/receipts", tags=["receipts"])
+
+
+class ReceiptIn(BaseModel):
+    customer_id: UUID
+    received_on: date
+    amount: Decimal = Field(gt=0, max_digits=15, decimal_places=0)
+    memo: OptionalHalfwidthStr = Field(default=None, max_length=200)
+    dry_run: bool = False  # true なら割り当て方を返すだけで登録しない
+
+
+class OpenInvoice(BaseModel):
+    invoice_id: UUID
+    invoice_number: str
+    version: int
+    title: str | None
+    issue_date: date
+    due_date: date | None
+    total_amount: Decimal
+    balance: Decimal
+    is_overdue: bool
+
+
+class OpenInvoicesOut(BaseModel):
+    invoices: list[OpenInvoice]
+    total_balance: Decimal
+
+
+class Allocation(BaseModel):
+    invoice_id: UUID
+    invoice_number: str
+    version: int
+    amount: Decimal
+    balance_after: Decimal  # 割り当てたあとの残額
+
+
+class ReceiptOut(BaseModel):
+    id: UUID | None  # dry_run のときは空
+    customer_id: UUID
+    customer_name: str
+    received_on: date
+    amount: Decimal
+    memo: str | None
+    created_at: datetime | None
+    allocations: list[Allocation]
+
+
+def _open_invoices(conn: Connection, customer_id: UUID, *, lock: bool = False) -> list[dict]:
+    """取引先の未入金の請求書(発行済みで残額がある最新版)を、古い順に返す。"""
+    rows = conn.execute(
+        f"""
+        SELECT i.id AS invoice_id, i.invoice_number, i.version, i.title, i.issue_date, i.due_date, i.total_amount,
+               i.total_amount - i.withholding_amount
+                 - coalesce((SELECT sum(p.amount) FROM app.payments p WHERE p.invoice_id = i.id), 0) AS balance,
+               (i.due_date IS NOT NULL AND i.due_date < %s) AS is_overdue
+        FROM app.invoices i
+        WHERE i.customer_id = %s AND i.status = 'issued' AND i.superseded_at IS NULL
+        ORDER BY i.issue_date, i.invoice_number
+        {"FOR UPDATE OF i" if lock else ""}
+        """,
+        (today(), customer_id),
+    ).fetchall()
+    return [r for r in rows if r["balance"] > 0]
+
+
+def _allocate(open_invoices: list[dict], amount: Decimal) -> list[dict]:
+    """入金額を古い請求書から順に割り当てる。"""
+    allocations, rest = [], amount
+    for inv in open_invoices:
+        if rest <= 0:
+            break
+        part = min(rest, inv["balance"])
+        allocations.append({
+            "invoice_id": inv["invoice_id"], "invoice_number": inv["invoice_number"], "version": inv["version"],
+            "amount": part, "balance_after": inv["balance"] - part,
+        })
+        rest -= part
+    return allocations
+
+
+def _get_receipt(conn: Connection, receipt_id: UUID) -> dict:
+    receipt = conn.execute(
+        """
+        SELECT r.id, r.customer_id, c.name AS customer_name, r.received_on, r.amount, r.memo, r.created_at
+        FROM app.receipts r JOIN app.customers c ON c.id = r.customer_id
+        WHERE r.id = %s
+        """,
+        (receipt_id,),
+    ).fetchone()
+    if receipt is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "入金が見つかりません")
+    receipt["allocations"] = conn.execute(
+        """
+        SELECT p.invoice_id, i.invoice_number, i.version, p.amount,
+               i.total_amount - i.withholding_amount
+                 - coalesce((SELECT sum(p2.amount) FROM app.payments p2 WHERE p2.invoice_id = i.id), 0) AS balance_after
+        FROM app.payments p JOIN app.invoices i ON i.id = p.invoice_id
+        WHERE p.receipt_id = %s ORDER BY i.issue_date, i.invoice_number
+        """,
+        (receipt_id,),
+    ).fetchall()
+    return receipt
+
+
+@router.get("/open-invoices", response_model=OpenInvoicesOut)
+def open_invoices(customer_id: UUID, conn: TenantConn):
+    get_customer(conn, customer_id)
+    rows = _open_invoices(conn, customer_id)
+    return OpenInvoicesOut(invoices=rows, total_balance=sum((r["balance"] for r in rows), Decimal(0)))
+
+
+@router.get("", response_model=list[ReceiptOut])
+def list_receipts(customer_id: UUID, conn: TenantConn):
+    ids = conn.execute(
+        "SELECT id FROM app.receipts WHERE customer_id = %s ORDER BY received_on DESC, created_at DESC LIMIT 100",
+        (customer_id,),
+    ).fetchall()
+    return [_get_receipt(conn, r["id"]) for r in ids]
+
+
+@router.post("", response_model=ReceiptOut)
+def create_receipt(body: ReceiptIn, conn: TenantConn):
+    """まとめ入金を登録し、古い請求書から順に割り当てる。dry_run なら割り当て方だけを返す。"""
+    customer = get_customer(conn, body.customer_id)
+    open_list = _open_invoices(conn, body.customer_id, lock=not body.dry_run)
+    total = sum((r["balance"] for r in open_list), Decimal(0))
+    if not open_list:
+        raise HTTPException(status.HTTP_409_CONFLICT, "この取引先に未入金の請求書はありません")
+    if body.amount > total:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"入金額が未入金の合計({total:,}円)を超えています。超える分は、どの請求書の入金か確認してから登録してください",
+        )
+
+    allocations = _allocate(open_list, body.amount)
+    if body.dry_run:
+        return ReceiptOut(id=None, customer_id=body.customer_id, customer_name=customer["name"],
+                          received_on=body.received_on, amount=body.amount, memo=body.memo,
+                          created_at=None, allocations=allocations)
+
+    receipt_id = conn.execute(
+        """
+        INSERT INTO app.receipts (tenant_id, customer_id, received_on, amount, memo, created_by)
+        VALUES (app.current_tenant_id(), %s, %s, %s, %s, app.current_user_id())
+        RETURNING id
+        """,
+        (body.customer_id, body.received_on, body.amount, body.memo),
+    ).fetchone()["id"]
+    memo = f"まとめ入金{f'({body.memo})' if body.memo else ''}"
+    for a in allocations:
+        conn.execute(
+            """
+            INSERT INTO app.payments (tenant_id, invoice_id, paid_on, amount, memo, receipt_id, created_by)
+            VALUES (app.current_tenant_id(), %s, %s, %s, %s, %s, app.current_user_id())
+            """,
+            (a["invoice_id"], body.received_on, a["amount"], memo, receipt_id),
+        )
+        sync_paid_status(conn, a["invoice_id"])
+    return _get_receipt(conn, receipt_id)
+
+
+@router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_receipt(receipt_id: UUID, conn: TenantConn):
+    """まとめ入金を取り消す。割り当てた請求書ごとの入金も一緒に消え、請求書は未入金に戻る。"""
+    receipt = _get_receipt(conn, receipt_id)
+    invoice_ids = [a["invoice_id"] for a in receipt["allocations"]]
+    conn.execute("SELECT id FROM app.invoices WHERE id = ANY(%s::uuid[]) FOR UPDATE", (invoice_ids,))
+    conn.execute("DELETE FROM app.receipts WHERE id = %s", (receipt_id,))
+    for invoice_id in invoice_ids:
+        sync_paid_status(conn, invoice_id)

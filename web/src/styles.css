@@ -1,0 +1,1361 @@
+/* 色: 帳票の紙と藍色の台帳、角印の朱。朱は印と主要ボタンだけに使う */
+:root {
+  --paper: #f4f6f5;
+  --surface: #ffffff;
+  --ink: #1c2530;
+  --muted: #5d6772;
+  --rule: #d6dbd8;
+  --indigo: #22385c;
+  --indigo-active: #31507f;
+  --shu: #b42e2a;
+  --shu-dark: #93231f;
+  --ok: #2f6b4f;
+
+  --font: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  --step-0: 0.8125rem; /* 13px 補足 */
+  --step-1: 0.9375rem; /* 15px 本文 */
+  --step-2: 1.125rem;  /* 18px 小見出し */
+  --step-3: 1.625rem;  /* 26px ページ見出し */
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--step-1);
+  line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--indigo-active);
+  outline-offset: 2px;
+}
+
+/* 全体の枠 */
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* サイドバー */
+.sidebar {
+  min-width: 0;
+  background: var(--indigo);
+  color: #e8edf5;
+  padding: 1.5rem 1rem;
+}
+
+.product {
+  font-weight: 700;
+  font-size: var(--step-1);
+  padding: 0 0.5rem 1.25rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.15);
+  margin-bottom: 1.25rem;
+}
+
+.nav-group + .nav-group {
+  margin-top: 1.75rem;
+}
+
+/* 大分類(書類・マスタ・設定)。太字の白と横線で、下の項目と見分けられるようにする */
+.nav-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.5rem;
+  padding: 0 0.5rem;
+  font-size: var(--step-1);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+
+.nav-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgb(255 255 255 / 0.28);
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0 0 0 0.75rem;
+  padding: 0 0 0 0.5rem;
+  border-left: 1px solid rgb(255 255 255 / 0.16); /* 項目が大分類の下にあることを示す */
+  font-size: var(--step-1);
+  color: #d5deeb;
+}
+
+.nav-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nav-link.is-active {
+  background: var(--indigo-active);
+  color: #fff;
+  font-weight: 700;
+}
+
+.nav-link.is-pending {
+  color: #8f9db4;
+}
+
+.nav-link small {
+  font-size: 0.75rem;
+}
+
+/* 上部のバー */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+
+.company {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+/* 角印: 会社名の1文字目を朱の二重枠に収める */
+.seal {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--shu);
+  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3px var(--shu);
+  border-radius: 3px;
+  color: var(--shu);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.company-name {
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.3;
+}
+
+.company-role {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+/* 本文 */
+.content {
+  padding: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-head h1 {
+  font-size: var(--step-3);
+  line-height: 1.3;
+}
+
+.count {
+  color: var(--muted);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.placeholder {
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+/* 一覧表 */
+.table-wrap {
+  position: relative; /* 中の見えない見出し(position: absolute)が枠の外へ出ないようにする */
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+th {
+  font-size: var(--step-0);
+  font-weight: 700;
+  color: var(--muted);
+  background: #f9faf9;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.honorific {
+  margin-left: 0.4em;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+/* 追加フォーム */
+.panel {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.panel h2 {
+  font-size: var(--step-2);
+  line-height: 1.4;
+}
+
+.panel label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+
+input,
+select {
+  font: inherit;
+  font-weight: 400;
+  font-size: var(--step-1);
+  color: var(--ink);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #b9c1bd;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.switcher select {
+  font-size: var(--step-0);
+}
+
+button {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--shu);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--shu-dark);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.alert,
+.notice {
+  font-size: var(--step-0);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+}
+
+.alert {
+  background: #fbeceb;
+  color: var(--shu-dark);
+  margin-bottom: 1rem;
+}
+
+.panel .alert {
+  margin-bottom: 0;
+}
+
+.notice {
+  background: #e8f2ec;
+  color: var(--ok);
+}
+
+/* スマホ・狭い画面 */
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 1rem;
+  }
+
+  .sidebar nav {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .nav-group + .nav-group {
+    margin-top: 0;
+    padding-left: 1.5rem;
+    border-left: 1px solid rgb(255 255 255 / 0.2);
+  }
+
+  .nav-heading {
+    margin-bottom: 0.25rem;
+    font-size: var(--step-0);
+  }
+
+  .nav-heading::after {
+    display: none;
+  }
+
+  .sidebar ul {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    border-left: none;
+  }
+
+  .nav-link {
+    white-space: nowrap;
+    gap: 0.4rem;
+  }
+
+  .topbar,
+  .content {
+    padding: 1rem;
+  }
+
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   見積の画面
+   --------------------------------------------------------------- */
+.page-head {
+  flex-wrap: wrap;
+}
+
+.page-head .button {
+  margin-left: auto;
+}
+
+.back {
+  flex-basis: 100%;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.back::before {
+  content: "‹ ";
+}
+
+a {
+  color: var(--indigo-active);
+}
+
+.button {
+  display: inline-block;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: var(--shu);
+  color: #fff;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: var(--shu-dark);
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--indigo);
+  border: 1px solid #b9c1bd;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #eef1f4;
+}
+
+button.danger-text {
+  background: none;
+  color: var(--shu-dark);
+  font-weight: 400;
+  padding: 0.4rem;
+}
+
+button.danger-text:hover:not(:disabled) {
+  background: #fbeceb;
+}
+
+.icon-button {
+  background: none;
+  color: var(--muted);
+  padding: 0.25rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: #fbeceb;
+  color: var(--shu-dark);
+}
+
+.icon-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 状態のタブ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab {
+  background: none;
+  color: var(--muted);
+  font-weight: 400;
+  border-radius: 6px 6px 0 0;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab:hover:not(:disabled) {
+  background: #e9edea;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--indigo);
+}
+
+/* 状態の表示 */
+.badge {
+  display: inline-block;
+  font-size: var(--step-0);
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge.is-draft {
+  background: #eceeed;
+  color: var(--muted);
+}
+
+.badge.is-issued {
+  background: #e4ebf5;
+  color: var(--indigo);
+}
+
+.badge.is-ordered {
+  background: #e8f2ec;
+  color: var(--ok);
+}
+
+.badge.is-lost {
+  background: none;
+  border-color: var(--rule);
+  color: var(--muted);
+}
+
+.badge.is-expired {
+  background: none;
+  border-color: var(--shu);
+  color: var(--shu-dark);
+}
+
+td.num,
+th.num,
+input.num {
+  text-align: right;
+}
+
+td.num {
+  white-space: nowrap; /* 金額の「円」だけが次の行に落ちないようにする */
+}
+
+/* 作成・詳細の2段組み */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.editor-main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.editor-side {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+}
+
+/* 明細の表が広くても画面全体を横に広げず、表の中だけ横にスクロールさせる */
+.editor .panel {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.panel label > select,
+.panel label > input,
+.panel label > textarea {
+  width: 100%;
+}
+
+textarea {
+  font: inherit;
+  font-weight: 400;
+  color: var(--ink);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #b9c1bd;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+[aria-invalid="true"] {
+  border-color: var(--shu);
+  background: #fdf5f4;
+}
+
+.hint {
+  font-size: var(--step-0);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* 明細の入力表 */
+.table-wrap.flat {
+  border: none;
+  border-radius: 0;
+}
+
+table.lines th,
+table.lines td {
+  padding: 0.35rem 0.3rem;
+  vertical-align: middle;
+}
+
+table.lines.readonly th,
+table.lines.readonly td {
+  padding: 0.55rem 0.6rem;
+}
+
+table.lines input,
+table.lines select {
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+}
+
+table.lines .col-no {
+  width: 2.2rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--step-0);
+}
+
+table.lines:not(.readonly) {
+  table-layout: fixed;
+  min-width: 760px; /* 品名欄の幅を確保する(足りなければ表の中だけ横にスクロール) */
+}
+
+table.lines.with-date:not(.readonly) {
+  min-width: 900px;
+}
+
+table.lines .col-qty {
+  width: 4.5rem;
+}
+
+table.lines .col-unit {
+  width: 3.75rem;
+}
+
+table.lines .col-price {
+  width: 7rem;
+}
+
+table.lines .col-tax {
+  width: 6.25rem;
+}
+
+table.lines .col-amount {
+  width: 6.75rem;
+}
+
+table.lines .col-remove {
+  width: 2.2rem;
+  text-align: center;
+}
+
+table.lines td.amount {
+  white-space: nowrap;
+  padding-right: 0.6rem;
+}
+
+.lines-panel > button.secondary {
+  justify-self: start;
+}
+
+/* 合計の欄 */
+.totals dl {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.totals dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.totals dt {
+  color: var(--muted);
+}
+
+.totals dd {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.totals .sub {
+  font-size: var(--step-0);
+}
+
+.totals .sub dd small {
+  display: block;
+  color: var(--muted);
+}
+
+.totals .grand {
+  border-top: 2px solid var(--ink);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.totals .grand dt {
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.totals .grand dd {
+  font-size: var(--step-3);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* 詳細画面の項目 */
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.facts dt {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.remarks {
+  white-space: pre-wrap;
+}
+
+/* 明細の品名欄が狭くならないよう、横幅が足りない画面では合計欄を明細の下に回す */
+@media (max-width: 1439px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-side {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .field-row,
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------
+   受注の画面
+   --------------------------------------------------------------- */
+.stack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.stack > .panel {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start; /* 説明文の長い欄があっても、ほかの入力欄を縦に伸ばさない */
+}
+
+.field-grid label,
+.field-row label {
+  align-content: start;
+}
+
+.bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.source-link {
+  font-size: var(--step-0);
+}
+
+.page-note {
+  margin-bottom: 1rem;
+}
+
+.add-row {
+  justify-self: start;
+}
+
+table.lines .col-date {
+  width: 9.5rem;
+}
+
+input[type="date"] {
+  font-size: var(--step-0);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f4f6f5;
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.history li:last-child {
+  border-bottom: none;
+}
+
+.history small {
+  color: var(--muted);
+  margin-left: 0.5rem;
+}
+
+button.link-button {
+  background: none;
+  text-align: left;
+  color: var(--indigo-active);
+  font-weight: 400;
+  padding: 0;
+  text-decoration: underline;
+}
+
+button.link-button:hover:not(:disabled) {
+  background: none;
+  color: var(--indigo);
+}
+
+@media (max-width: 1080px) {
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .bottom-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------
+   請求・自社情報の画面
+   --------------------------------------------------------------- */
+.head-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.page-head .head-actions .button {
+  margin-left: 0;
+}
+
+.button.secondary-link {
+  background: var(--surface);
+  color: var(--indigo);
+  border: 1px solid #b9c1bd;
+}
+
+.button.secondary-link:hover {
+  background: #eef1f4;
+}
+
+h1 .version {
+  font-size: var(--step-1);
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 0.6rem;
+}
+
+.notice-warn {
+  font-size: var(--step-0);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: #fdf3e6;
+  color: #7a4a0c;
+}
+
+.col-check {
+  width: 2.5rem;
+  text-align: center;
+}
+
+tr.is-muted td {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+tr.is-muted td:first-child {
+  text-decoration: none;
+}
+
+.closing-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.closing-footer strong {
+  font-size: var(--step-2);
+}
+
+.totals .balance {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--rule);
+}
+
+.totals .balance dd {
+  font-weight: 700;
+}
+
+.payment-form {
+  display: grid;
+  grid-template-columns: 10rem 10rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+.payment-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+
+.payment-buttons {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.history li small + small {
+  margin-left: 0.4rem;
+}
+
+.settings {
+  display: grid;
+  gap: 1rem;
+  max-width: 860px;
+}
+
+.settings .field-row {
+  row-gap: 0.875rem;
+}
+
+.terms-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 10rem));
+  gap: 1rem;
+}
+
+.terms-summary {
+  font-weight: 700;
+  color: var(--indigo);
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .payment-form,
+  .terms-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 変更できない行・欄 */
+tr.is-locked td.col-no {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.totals .balance .overpaid dt,
+.totals .balance .overpaid dd {
+  color: var(--shu-dark);
+}
+
+/* 締め請求の繰越 */
+.carryover {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #f1f4f8;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.carryover dl {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.carryover dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.carryover dt {
+  color: var(--muted);
+  font-size: var(--step-0);
+}
+
+.carryover dd {
+  margin: 0;
+}
+
+.carryover .due dt {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.carryover .due dd {
+  font-weight: 700;
+  font-size: var(--step-2);
+  color: var(--indigo);
+}
+
+.carryover details summary {
+  cursor: pointer;
+  font-size: var(--step-0);
+  color: var(--indigo-active);
+}
+
+.carryover ul {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-size: var(--step-0);
+}
+
+.carryover li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+}
+
+/* まとめ入金 */
+.badge.inline {
+  margin-left: 0.4rem;
+}
+
+td small.after {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.history li > span small a {
+  margin: 0 0.1rem;
+}
+
+table.nowrap th,
+table.nowrap td {
+  white-space: nowrap;
+}
+
+/* 仮の取引日 */
+input.provisional {
+  border-color: #d08a2c;
+  background: #fdf3e6;
+}
+
+.provisional-note {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.provisional-note p {
+  flex: 1 1 24rem;
+}
+
+/* 書類の検索 */
+.search-form {
+  grid-template-columns: 9rem minmax(0, 1.2fr) minmax(0, 1.2fr);
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.search-form fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.search-form fieldset input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.search-form legend {
+  font-size: var(--step-0);
+  font-weight: 700;
+  padding: 0 0 0.25rem;
+}
+
+.search-form label input,
+.search-form label select {
+  width: 100%;
+}
+
+.search-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.sep {
+  margin: 0 0.4rem;
+  color: var(--rule);
+}
+
+.verify-ok {
+  color: var(--ok);
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+.verify-ng {
+  color: var(--shu-dark);
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+@media (max-width: 860px) {
+  .search-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 源泉徴収税額 */
+.totals dl > div.minus dt,
+.totals dl > div.minus dd {
+  color: var(--shu-dark);
+}
+
+/* 事業形態・消費税の選択 */
+.choice-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.choices {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.choices legend {
+  font-size: var(--step-0);
+  font-weight: 700;
+  padding: 0 0 0.25rem;
+}
+
+.panel .choices label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  font-size: var(--step-1);
+}
+
+@media (max-width: 860px) {
+  .choice-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel label.check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.5rem;
+  font-weight: 400;
+}
+
+.panel label.check .hint {
+  grid-column: 1 / -1;
+}
+
+.withholding-check {
+  align-self: end;
+  padding-bottom: 0.4rem;
+}
+
+/* ラジオボタン・チェックボックスは、入力欄の幅いっぱいの指定を受けない */
+.panel label > input[type="radio"],
+.panel label > input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.panel .choices label {
+  justify-content: flex-start;
+}
+
+/* マスタ(取引先・商品・サービス) */
+.list-col {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.inline-check input {
+  width: auto;
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+tr.is-selected td {
+  background: #eef1f8;
+}
+
+tr.is-inactive td {
+  color: var(--muted);
+}
+
+.own-terms {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.own-terms .terms-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.own-terms .terms-summary {
+  margin: 0;
+}
+
+/* データの書き出し */
+.export-panel {
+  max-width: 860px;
+  margin-top: 1rem;
+}
+
+.export-panel p {
+  margin: 0;
+}
+
+.actions.inline {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.lead {
+  margin: -0.5rem 0 1rem;
+  color: var(--muted);
+  max-width: 60rem;
+}
+
+.field-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}

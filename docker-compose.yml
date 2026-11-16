@@ -1,0 +1,59 @@
+# 開発環境: DB・API・画面をまとめて起動する
+#   docker compose up -d       … 起動(初回は数分かかる)
+#   http://localhost:5173      … 画面
+#   http://localhost:8000/docs … API の仕様書(自動生成)
+#   docker compose down -v     … 停止して DB も初期化する
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # 初回起動時だけ実行される(db/migrations を番号順 → 開発用データ)
+      - ./db/dev/initdb.sh:/docker-entrypoint-initdb.d/initdb.sh:ro
+      - ./db:/db:ro
+    healthcheck:
+      # 初期化中の一時サーバーは TCP を受け付けないので、TCP で確認して初期化完了を待つ
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql://api_login:api_login_dev@db:5432/postgres
+      AUTH_MODE: dev
+      DEV_USER_ID: 22222222-0000-0000-0000-000000000001
+      DOCUMENT_DIR: /data/documents
+    volumes:
+      - ./api:/app
+      # 発行した書類の控えPDF(本番では Supabase Storage などに置き換える)
+      - documents:/data/documents
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: node:22-alpine
+    working_dir: /web
+    command: sh -c "npm ci && npm run dev"
+    environment:
+      API_TARGET: http://api:8000
+    volumes:
+      - ./web:/web
+      # node_modules は Windows 側と混ざらないようコンテナ専用の置き場にする
+      - web-node-modules:/web/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
+  web-node-modules:
+  documents:
