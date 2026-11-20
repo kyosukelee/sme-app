@@ -76,6 +76,7 @@ class PaymentOut(BaseModel):
     memo: str | None
     created_at: datetime
     receipt_id: UUID | None  # まとめ入金から割り当てた入金なら、その入金
+    kind: str = "deposit"  # deposit=入金、bank_fee=振込手数料として消し込んだ額
 
 
 class CarryoverOut(BaseModel):
@@ -197,7 +198,7 @@ def get_invoice_record(conn: Connection, invoice_id: UUID, *, for_update: bool =
     _finish_row(invoice)
     invoice["lines"], invoice["tax_summaries"] = read_lines(conn, "invoice", invoice_id)
     invoice["payments"] = conn.execute(
-        "SELECT id, paid_on, amount, memo, created_at, receipt_id FROM app.payments WHERE invoice_id = %s ORDER BY paid_on, created_at",
+        "SELECT id, paid_on, amount, memo, created_at, receipt_id, kind FROM app.payments WHERE invoice_id = %s ORDER BY paid_on, created_at",
         (invoice_id,),
     ).fetchall()
     invoice["versions"] = (

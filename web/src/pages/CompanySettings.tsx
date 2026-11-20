@@ -19,6 +19,7 @@ const EMPTY_PROFILE: CompanyProfile = {
 export default function CompanySettings({ tenantId }: { tenantId: string }) {
   const [profile, setProfile] = useState<CompanyProfile>(EMPTY_PROFILE);
   const [terms, setTerms] = useState<PaymentTerms | null>(null);
+  const [feeLimit, setFeeLimit] = useState("880");
   const [canEdit, setCanEdit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "done" | "error"; text: string } | null>(null);
@@ -31,6 +32,7 @@ export default function CompanySettings({ tenantId }: { tenantId: string }) {
       .then((c) => {
         setProfile(c.profile ?? EMPTY_PROFILE);
         setTerms(c.terms);
+        setFeeLimit(String(c.bank_fee_limit));
         setCanEdit(c.can_edit);
       })
       .catch((e: Error) => setMessage({ kind: "error", text: e.message }));
@@ -46,12 +48,22 @@ export default function CompanySettings({ tenantId }: { tenantId: string }) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!terms) return;
+    const limit = feeLimit.normalize("NFKC").replace(/,/g, "").trim();
+    if (!/^\d+$/.test(limit) || Number(limit) > 10000) {
+      setMessage({ kind: "error", text: "振込手数料の上限は、0〜10,000円の数字で入力してください。" });
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
-      const saved = await api.updateCompany(tenantId, { profile: { ...profile, name: profile.name.trim() }, terms });
+      const saved = await api.updateCompany(tenantId, {
+        profile: { ...profile, name: profile.name.trim() },
+        terms,
+        bank_fee_limit: Number(limit),
+      });
       setProfile(saved.profile ?? EMPTY_PROFILE);
       setTerms(saved.terms);
+      setFeeLimit(String(saved.bank_fee_limit));
       company.reload(); // 消費税の欄・源泉徴収の欄の表示を切り替える
       setMessage({ kind: "done", text: "自社情報を保存しました。これから発行する書類に反映されます。" });
     } catch (err) {
@@ -180,6 +192,24 @@ export default function CompanySettings({ tenantId }: { tenantId: string }) {
           <h2>請求の締め日・支払日</h2>
           <p className="hint">取引先ごとに設定していない場合は、この条件で請求書のお支払期限を決めます。</p>
           <TermsFields terms={terms} onChange={setTerms} disabled={!canEdit} />
+        </section>
+
+        <section className="panel">
+          <h2>入金消込</h2>
+          <label className="narrow">
+            振込手数料として消し込む差額の上限(円)
+            <input
+              className="num"
+              inputMode="numeric"
+              value={feeLimit}
+              disabled={!canEdit}
+              onChange={(e) => setFeeLimit(e.target.value)}
+            />
+          </label>
+          <p className="hint">
+            取引先が振込手数料を差し引いて振り込んだとき、請求額との差額がこの金額以内なら「振込手数料」として請求書を入金済みにできます。0
+            にすると、差額は一部入金として残します。
+          </p>
         </section>
 
         {canEdit && (

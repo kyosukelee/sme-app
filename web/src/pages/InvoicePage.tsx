@@ -658,7 +658,7 @@ function Payments({ tenantId, invoice, onChange }: { tenantId: string; invoice: 
                 {p.memo && <small>{p.memo}</small>}
               </span>
               {p.receipt_id ? (
-                <a href={`#/receipts?customer=${invoice.customer_id}`}>まとめ入金を見る</a>
+                <a href={`#/receipts?customer=${invoice.customer_id}`}>入金を見る</a>
               ) : (
                 <button type="button" className="link-button" onClick={() => remove(p.id, p.amount)} disabled={busy}>
                   取り消す

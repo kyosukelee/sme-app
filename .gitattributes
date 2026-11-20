@@ -1,8 +1,11 @@
-﻿# Linux のコンテナで動かすファイルは、Windows で取り出しても改行を LF のままにする
+# Linux のコンテナで動かすファイルは、Windows で取り出しても改行を LF のままにする
 # (CRLF になると db/dev/initdb.sh などがコンテナ内で動かなくなる)
+# そのほかのテキストファイルも LF にそろえる(Windows で git add したときの改行の警告を出さない)
 * text=auto eol=lf
 *.sh     text eol=lf
 *.sql    text eol=lf
 *.py     text eol=lf
 Dockerfile text eol=lf
 *.yml    text eol=lf
+# 銀行の明細の見本は、銀行が出すとおりのバイト列(Shift_JIS・CRLF)のまま保存する
+docs/samples/*.csv binary

@@ -14,6 +14,7 @@ import QuoteEditor from "./pages/QuoteEditor";
 import QuoteList from "./pages/QuoteList";
 import QuotePage from "./pages/QuotePage";
 import Receipts from "./pages/Receipts";
+import Reconcile from "./pages/Reconcile";
 import { navigate, useHashPath } from "./router";
 
 type NavItem = { label: string; href?: string; section?: string };
@@ -26,6 +27,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { label: "受注", href: "#/orders", section: "/orders" },
       { label: "請求", href: "#/invoices", section: "/invoices" },
       { label: "入金", href: "#/receipts", section: "/receipts" },
+      { label: "入金消込", href: "#/reconcile", section: "/reconcile" },
       { label: "書類の検索", href: "#/documents", section: "/documents" },
     ],
   },
@@ -147,6 +149,7 @@ function Page({ path, tenantId }: { path: string; tenantId: string }) {
   if (path === "/items") return <Items tenantId={tenantId} />;
   if (path === "/settings/company") return <CompanySettings tenantId={tenantId} />;
   if (path === "/documents") return <DocumentSearch key={`documents-${tenantId}`} tenantId={tenantId} />;
+  if (path === "/reconcile") return <Reconcile tenantId={tenantId} />;
   if (path === "/receipts" || path.startsWith("/receipts?")) {
     const customer = new URLSearchParams(path.split("?")[1] ?? "").get("customer");
     return <Receipts key={`receipts-${tenantId}`} tenantId={tenantId} initialCustomerId={customer} />;

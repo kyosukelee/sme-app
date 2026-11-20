@@ -252,12 +252,13 @@ export default function Receipts({ tenantId, initialCustomerId }: { tenantId: st
 
         {customerId && history.length > 0 && (
           <section className="panel">
-            <h2>まとめ入金の履歴</h2>
+            <h2>入金の履歴</h2>
             <ul className="history">
               {history.map((r) => (
                 <li key={r.id}>
                   <span>
                     {jdate(r.received_on)} <strong>{yen(r.amount)}</strong>
+                    {Number(r.fee_amount) > 0 && <small>振込手数料 {yen(r.fee_amount)}</small>}
                     {r.memo && <small>{r.memo}</small>}
                     <small>
                       →{" "}

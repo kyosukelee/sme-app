@@ -13,6 +13,7 @@ export type Customer = {
   withholding_default: boolean;
   terms: PaymentTerms | null; // 取引先ごとの締め日・支払日。null なら会社の設定に従う
   is_active: boolean;
+  payer_names: string[]; // 振込名義(銀行の明細に出るカナの名前)。入金消込で使う
 };
 
 export type CustomerInput = Omit<Customer, "id">;
@@ -218,9 +219,96 @@ export type Receipt = {
   customer_name: string;
   received_on: string;
   amount: string;
+  fee_amount: string; // 振込手数料として消し込んだ額
   memo: string | null;
   created_at: string | null;
-  allocations: { invoice_id: string; invoice_number: string; version: number; amount: string; balance_after: string }[];
+  allocations: {
+    invoice_id: string;
+    invoice_number: string;
+    version: number;
+    amount: string;
+    fee_amount: string;
+    balance_after: string;
+  }[];
+};
+
+// ---- 入金消込 ----
+export type Encoding = "auto" | "utf-8" | "shift_jis";
+
+export type BankFormatInput = {
+  name: string;
+  encoding: Encoding;
+  skip_rows: number;
+  date_col: number;
+  amount_col: number;
+  payer_col: number;
+  memo_col: number | null;
+};
+
+export type BankFormat = BankFormatInput & { id: string };
+
+export type BankPreview = {
+  encoding: "utf-8" | "shift_jis";
+  rows: string[][];
+  total_rows: number;
+  guess: { skip_rows: number; date_col: number | null; amount_col: number | null; payer_col: number | null; memo_col: number | null };
+};
+
+export type BankImportResult = {
+  id: string;
+  imported: number;
+  duplicates: number;
+  skipped: number;
+  problems: { row: number; message: string }[];
+};
+
+export type BankImportSummary = {
+  id: string;
+  filename: string | null;
+  format_name: string | null;
+  imported_count: number;
+  duplicate_count: number;
+  matched_count: number;
+  created_at: string;
+};
+
+export type CandidateInvoice = {
+  invoice_id: string;
+  invoice_number: string;
+  version: number;
+  title: string | null;
+  issue_date: string;
+  due_date: string | null;
+  balance: string;
+};
+
+export type MatchCandidate = {
+  customer_id: string;
+  customer_name: string;
+  basis: "name_amount" | "amount" | "name"; // 名義と金額 / 金額だけ / 名義だけ
+  match: "exact" | "fee" | "partial"; // ちょうど / 振込手数料の差額あり / 一部入金
+  fee_amount: string;
+  invoices: CandidateInvoice[];
+};
+
+export type StatementStatus = "open" | "matched" | "ignored";
+
+export type BankStatement = {
+  id: string;
+  txn_date: string;
+  amount: string;
+  payer_name: string;
+  memo: string | null;
+  status: StatementStatus;
+  ignore_reason: string | null;
+  receipt: { id: string; customer_id: string; customer_name: string; fee_amount: string; invoice_numbers: string[] } | null;
+  candidates: MatchCandidate[];
+};
+
+export type StatementsResponse = {
+  statements: BankStatement[];
+  counts: Record<StatementStatus, number>;
+  fee_limit: string;
 };
 
 export type DocType = "quote" | "order" | "invoice";
@@ -262,7 +350,7 @@ export type CompanyProfile = {
 
 export type PaymentTerms = { closing_day: number; payment_month_offset: number; payment_day: number };
 
-export type Company = { profile: CompanyProfile | null; terms: PaymentTerms; can_edit: boolean };
+export type Company = { profile: CompanyProfile | null; terms: PaymentTerms; bank_fee_limit: number; can_edit: boolean };
 
 export type QuoteInput = {
   customer_id: string;
@@ -420,6 +508,29 @@ export const api = {
   ) => json<Receipt>("/api/receipts", { method: "POST", body: JSON.stringify(body) }, t),
   deleteReceipt: (t: string, id: string) => json<void>(`/api/receipts/${id}`, { method: "DELETE" }, t),
 
+  bankFormats: (t: string) => json<BankFormat[]>("/api/bank/formats", {}, t),
+  createBankFormat: (t: string, input: BankFormatInput) =>
+    json<BankFormat>("/api/bank/formats", { method: "POST", body: JSON.stringify(input) }, t),
+  updateBankFormat: (t: string, id: string, input: BankFormatInput) =>
+    json<BankFormat>(`/api/bank/formats/${id}`, { method: "PUT", body: JSON.stringify(input) }, t),
+  deleteBankFormat: (t: string, id: string) => json<void>(`/api/bank/formats/${id}`, { method: "DELETE" }, t),
+  previewBankFile: (t: string, file: { filename: string; content_base64: string }, encoding: Encoding) =>
+    json<BankPreview>("/api/bank/preview", { method: "POST", body: JSON.stringify({ ...file, encoding }) }, t),
+  importBankFile: (t: string, formatId: string, file: { filename: string; content_base64: string }) =>
+    json<BankImportResult>("/api/bank/imports", { method: "POST", body: JSON.stringify({ ...file, format_id: formatId }) }, t),
+  bankImports: (t: string) => json<BankImportSummary[]>("/api/bank/imports", {}, t),
+  deleteBankImport: (t: string, id: string) => json<void>(`/api/bank/imports/${id}`, { method: "DELETE" }, t),
+  bankStatements: (t: string, status: StatementStatus) => json<StatementsResponse>(`/api/bank/statements?status=${status}`, {}, t),
+  matchStatement: (
+    t: string,
+    id: string,
+    body: { customer_id: string; invoice_ids: string[]; fee_amount: string; remember_payer: boolean },
+  ) => json<BankStatement>(`/api/bank/statements/${id}/match`, { method: "POST", body: JSON.stringify(body) }, t),
+  unmatchStatement: (t: string, id: string) => json<BankStatement>(`/api/bank/statements/${id}/match`, { method: "DELETE" }, t),
+  ignoreStatement: (t: string, id: string, reason: string | null) =>
+    json<BankStatement>(`/api/bank/statements/${id}/ignore`, { method: "POST", body: JSON.stringify({ reason }) }, t),
+  unignoreStatement: (t: string, id: string) => json<BankStatement>(`/api/bank/statements/${id}/ignore`, { method: "DELETE" }, t),
+
   searchDocuments: (t: string, query: DocumentQuery) => {
     const params = new URLSearchParams(Object.entries(query).filter(([, v]) => v) as [string, string][]);
     return json<IssuedDocument[]>(`/api/documents?${params}`, {}, t);
@@ -429,7 +540,7 @@ export const api = {
   openDocumentPdf: (t: string, id: string) => openPdf(t, `/api/documents/${id}/pdf`, "控え.pdf"),
 
   company: (t: string) => json<Company>("/api/company", {}, t),
-  updateCompany: (t: string, body: { profile: CompanyProfile; terms: PaymentTerms }) =>
+  updateCompany: (t: string, body: { profile: CompanyProfile; terms: PaymentTerms; bank_fee_limit?: number }) =>
     json<Company>("/api/company", { method: "PUT", body: JSON.stringify(body) }, t),
 
   openQuotePdf: (t: string, id: string, preopened?: Window | null) =>

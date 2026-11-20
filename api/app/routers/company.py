@@ -60,11 +60,14 @@ class PaymentTerms(BaseModel):
 class CompanyIn(BaseModel):
     profile: CompanyProfile
     terms: PaymentTerms
+    # 入金消込で、振込手数料として消し込める差額の上限(0 なら使わない)。省略したら変えない
+    bank_fee_limit: int | None = Field(default=None, ge=0, le=10000)
 
 
 class CompanyOut(BaseModel):
     profile: CompanyProfile | None
     terms: PaymentTerms
+    bank_fee_limit: int
     can_edit: bool
 
 
@@ -77,12 +80,14 @@ def _read(conn) -> dict:
         """
     ).fetchone()
     terms = conn.execute(
-        "SELECT closing_day, payment_month_offset, payment_day FROM app.tenant_settings"
+        "SELECT closing_day, payment_month_offset, payment_day, bank_fee_limit FROM app.tenant_settings"
     ).fetchone()
+    fee_limit = int(terms.pop("bank_fee_limit"))
     role = conn.execute(
         "SELECT role FROM app.memberships WHERE tenant_id = app.current_tenant_id() AND user_id = app.current_user_id()"
     ).fetchone()
-    return {"profile": profile, "terms": terms, "can_edit": role is not None and role["role"] == "admin"}
+    return {"profile": profile, "terms": terms, "bank_fee_limit": fee_limit,
+            "can_edit": role is not None and role["role"] == "admin"}
 
 
 @router.get("", response_model=CompanyOut)
@@ -114,4 +119,6 @@ def update_company(body: CompanyIn, conn: AdminConn):
         "UPDATE app.tenant_settings SET closing_day = %s, payment_month_offset = %s, payment_day = %s",
         (t.closing_day, t.payment_month_offset, t.payment_day),
     )
+    if body.bank_fee_limit is not None:
+        conn.execute("UPDATE app.tenant_settings SET bank_fee_limit = %s", (body.bank_fee_limit,))
     return _read(conn)

@@ -12,6 +12,7 @@ const EMPTY: CustomerInput = {
   withholding_default: false,
   terms: null,
   is_active: true,
+  payer_names: [],
 };
 
 export default function Customers({ tenantId }: { tenantId: string }) {
@@ -157,6 +158,8 @@ function CustomerForm({
   const [form, setForm] = useState<CustomerInput>(() => (customer ? { ...customer } : EMPTY));
   // 取引先ごとの条件を使うかどうか。使うときの初期値は会社の設定
   const [ownTerms, setOwnTerms] = useState(customer?.terms != null);
+  // 振込名義は1行に1つ。入金消込で確定したときに自動で追加されることもある
+  const [payerText, setPayerText] = useState((customer?.payer_names ?? []).join("\n"));
   const [terms, setTerms] = useState<PaymentTerms>(
     customer?.terms ?? companyTerms ?? { closing_day: 31, payment_month_offset: 1, payment_day: 31 },
   );
@@ -180,6 +183,10 @@ function CustomerForm({
       email: form.email?.trim() || null,
       withholding_default: soleProprietor ? form.withholding_default : (customer?.withholding_default ?? false),
       terms: ownTerms ? terms : null,
+      payer_names: payerText
+        .split("\n")
+        .map((n) => n.trim())
+        .filter(Boolean),
     };
     try {
       const result = customer ? await api.updateCustomer(tenantId, customer.id, input) : await api.createCustomer(tenantId, input);
@@ -187,6 +194,7 @@ function CustomerForm({
       if (!customer) {
         setForm(EMPTY);
         setOwnTerms(false);
+        setPayerText("");
         setMessage({ kind: "done", text: `「${result.name}」を追加しました` });
       }
     } catch (err) {
@@ -221,6 +229,13 @@ function CustomerForm({
       <label>
         メールアドレス
         <input type="email" {...text("email")} />
+      </label>
+      <label>
+        振込名義(任意)
+        <textarea rows={2} value={payerText} onChange={(e) => setPayerText(e.target.value)} placeholder="例: ｶ)ｾﾄｳﾁﾌﾞﾂｻﾝ" />
+        <span className="hint">
+          銀行の明細に出る振込人の名前です。1行に1つ書きます。入金消込で、この名義の入金にこの取引先を候補として出します(確定すると自動で追加されます)。
+        </span>
       </label>
 
       <fieldset className="choices">
