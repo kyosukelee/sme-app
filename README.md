@@ -26,6 +26,8 @@ DB(PostgreSQL)・API(Python / FastAPI)・画面(React)を Docker Compose でま�
 | ![見積の作成](docs/images/sme-quote.jpg) | ![請求書の詳細](docs/images/sme-invoice.jpg) |
 | **請求書PDF(インボイス対応)** | **書類の検索(電子帳簿保存法の検索要件)** |
 | ![請求書PDF](docs/images/sme-invoice-pdf.jpg) | ![書類の検索](docs/images/sme-documents.jpg) |
+| **入金消込(銀行の明細から請求書の候補を出す)** | **仕訳の出力(会計ソフトの取り込み形式)** |
+| ![入金消込](docs/images/sme-reconcile.jpg) | ![仕訳の出力](docs/images/sme-journal.jpg) |
 
 画面のデータ(会社・取引先・口座・登録番号)はすべて架空です。
 

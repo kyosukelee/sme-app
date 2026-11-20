@@ -1805,3 +1805,7 @@ button.disclosure:hover:not(:disabled) {
     min-width: 7rem;
   }
 }
+
+table.journal-table td:first-child {
+  white-space: nowrap;
+}
