@@ -89,6 +89,8 @@ def render_order_acknowledgment(order: dict, company: dict | None, *, issue_date
     meta = [("受注番号", order["order_number"]), ("受注日", jdate(order["order_date"]))]
     if order["delivery_due_date"]:
         meta.append(("納期", jdate(order["delivery_due_date"])))
+    if order.get("customer_order_ref"):
+        meta.append(("貴社注文番号", order["customer_order_ref"]))
     if order.get("quote_number"):
         meta.append(("見積番号", order["quote_number"]))
     meta.append(("発行日", jdate(issue_date)))

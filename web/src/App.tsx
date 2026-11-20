@@ -4,6 +4,8 @@ import { CompanyProvider } from "./company";
 import CompanySettings from "./pages/CompanySettings";
 import Customers from "./pages/Customers";
 import DocumentSearch from "./pages/DocumentSearch";
+import ImportList from "./pages/ImportList";
+import ImportReview from "./pages/ImportReview";
 import InvoiceClosing from "./pages/InvoiceClosing";
 import InvoiceList from "./pages/InvoiceList";
 import InvoicePage from "./pages/InvoicePage";
@@ -31,6 +33,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { label: "見積", href: "#/quotes", section: "/quotes" },
       { label: "受注", href: "#/orders", section: "/orders" },
+      { label: "注文書の取り込み", href: "#/imports", section: "/imports" },
       { label: "請求", href: "#/invoices", section: "/invoices" },
       { label: "入金", href: "#/receipts", section: "/receipts" },
       { label: "入金消込", href: "#/reconcile", section: "/reconcile" },
@@ -116,6 +119,7 @@ export default function App() {
     // 書類1件の画面は前の会社(利用者)のものなので、一覧に戻る
     if (path.startsWith("/quotes/")) navigate("/quotes");
     if (path.startsWith("/orders/")) navigate("/orders");
+    if (path.startsWith("/imports/")) navigate("/imports");
     if (path.startsWith("/invoices/")) navigate("/invoices");
     if (path.startsWith("/requests/")) navigate("/requests");
   }
@@ -264,6 +268,9 @@ function Page({ path, tenantId, isAdmin, todo }: { path: string; tenantId: strin
   if (path === "/invoices/closing") return <InvoiceClosing key={`closing-${tenantId}`} tenantId={tenantId} />;
   const invoice = path.match(/^\/invoices\/([0-9a-f-]{36})$/);
   if (invoice) return <InvoicePage tenantId={tenantId} id={invoice[1]} />;
+  if (path === "/imports") return <ImportList key={`imports-${tenantId}`} tenantId={tenantId} />;
+  const imported = path.match(/^\/imports\/([0-9a-f-]{36})$/);
+  if (imported) return <ImportReview key={imported[1]} tenantId={tenantId} id={imported[1]} />;
   if (path === "/orders") return <OrderList tenantId={tenantId} />;
   if (path === "/orders/new") return <OrderPage key={`new-${tenantId}`} tenantId={tenantId} />;
   const order = path.match(/^\/orders\/([0-9a-f-]{36})$/);

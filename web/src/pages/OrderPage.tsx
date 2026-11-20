@@ -54,6 +54,7 @@ function OrderEditor({ tenantId, initial }: { tenantId: string; initial?: Order 
   const [remarks, setRemarks] = useState(initial?.remarks ?? "");
   const [orderDate, setOrderDate] = useState(initial?.order_date ?? todayIso());
   const [dueDate, setDueDate] = useState(initial?.delivery_due_date ?? "");
+  const [orderRef, setOrderRef] = useState(initial?.customer_order_ref ?? "");
   const [rows, setRows] = useState<Row[]>(() => (initial?.lines.length ? rowsFromDocument(initial, lockOf) : [blankRow(), blankRow()]));
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<Busy>("");
@@ -94,6 +95,7 @@ function OrderEditor({ tenantId, initial }: { tenantId: string; initial?: Order 
       remarks: remarks.trim() || null,
       order_date: orderDate,
       delivery_due_date: dueDate || null,
+      customer_order_ref: orderRef.trim() || null,
       lines: rows
         .filter((r) => !isBlank(r))
         .map((r) => ({ ...toLine(r), line_id: r.line_id, quote_line_id: r.quote_line_id, delivered_on: r.delivered_on || null })),
@@ -107,6 +109,7 @@ function OrderEditor({ tenantId, initial }: { tenantId: string; initial?: Order 
     setCalc(calcFromDocument(saved, savedRows));
     setTitle(saved.title ?? "");
     setRemarks(saved.remarks ?? "");
+    setOrderRef(saved.customer_order_ref ?? "");
     setDirty(false);
   }
 
@@ -230,6 +233,11 @@ function OrderEditor({ tenantId, initial }: { tenantId: string; initial?: Order 
             見積 {order.quote_number} から変換
           </a>
         )}
+        {order?.source_import_id && (
+          <a className="source-link" href={`#/imports/${order.source_import_id}`}>
+            注文書から取り込み
+          </a>
+        )}
         {dirty && <p className="count">未保存の変更があります</p>}
       </div>
 
@@ -268,6 +276,15 @@ function OrderEditor({ tenantId, initial }: { tenantId: string; initial?: Order 
             <label>
               納期
               <input type="date" value={dueDate} disabled={readOnly} onChange={(e) => change(() => setDueDate(e.target.value))} />
+            </label>
+            <label>
+              お客様の注文番号(任意)
+              <input
+                value={orderRef}
+                maxLength={50}
+                disabled={readOnly}
+                onChange={(e) => change(() => setOrderRef(e.target.value))}
+              />
             </label>
           </div>
         </section>

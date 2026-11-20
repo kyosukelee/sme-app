@@ -24,6 +24,9 @@ export default function OrderList({ tenantId }: { tenantId: string }) {
       <div className="page-head">
         <h1>受注</h1>
         {orders && <p className="count">{orders.length}件</p>}
+        <a className="button secondary-link" href="#/imports">
+          注文書から取り込む
+        </a>
         <a className="button" href="#/orders/new">
           受注を登録
         </a>

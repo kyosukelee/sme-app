@@ -36,6 +36,7 @@ class OrderIn(BaseModel):
     remarks: OptionalHalfwidthStr = Field(default=None, max_length=2000)
     order_date: date | None = None         # 省略すると今日
     delivery_due_date: date | None = None  # 納期
+    customer_order_ref: OptionalHalfwidthStr = Field(default=None, max_length=50)  # お客様の注文番号
     lines: list[OrderLineIn] = Field(min_length=1, max_length=100)
 
 
@@ -60,6 +61,7 @@ class OrderListItem(BaseModel):
     delivery_due_date: date | None
     total_amount: Decimal
     quote_number: str | None
+    customer_order_ref: str | None
 
 
 class InvoiceRef(BaseModel):
@@ -78,6 +80,7 @@ class OrderOut(OrderListItem):
     tax_amount: Decimal
     updated_at: datetime
     quote_id: UUID | None
+    source_import_id: UUID | None   # 注文書の取り込みから作った受注なら、その取り込み
     lines: list[OrderLineOut]
     tax_summaries: list[TaxSummaryOut]
     acknowledgments: list[AcknowledgmentOut]
@@ -89,7 +92,8 @@ ORDER_COLUMNS = """
     o.id, o.tenant_id, o.order_number, o.status, o.quote_id, q.quote_number,
     o.customer_id, o.customer_name, o.customer_honorific, o.customer_address,
     o.title, o.remarks, o.order_date, o.delivery_due_date,
-    o.subtotal_amount, o.tax_amount, o.total_amount, o.updated_at
+    o.subtotal_amount, o.tax_amount, o.total_amount, o.updated_at,
+    o.customer_order_ref, o.source_import_id
 """
 
 
@@ -149,21 +153,40 @@ def _require_open(order: dict, action: str) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, f"請求済みの受注は{action}できません")
 
 
+def _require_unique_ref(conn: Connection, customer_id: UUID, ref: str | None, order_id: UUID | None = None) -> None:
+    """同じ取引先の同じ注文番号の受注は1件だけ(二重登録を防ぐ)。"""
+    if not ref:
+        return
+    row = conn.execute(
+        """
+        SELECT order_number FROM app.orders
+        WHERE customer_id = %s AND customer_order_ref = %s AND (%s::uuid IS NULL OR id <> %s)
+        """,
+        (customer_id, ref, order_id, order_id),
+    ).fetchone()
+    if row:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"この取引先の注文番号「{ref}」は、受注 {row['order_number']} で登録済みです"
+        )
+
+
 def _insert_order(conn: Connection, *, number: str, quote_id: UUID | None, customer_id: UUID, customer: dict,
                   body_title: str | None, body_remarks: str | None, order_date: date,
-                  delivery_due_date: date | None, lines: list, pricing: Pricing | None = None) -> UUID:
+                  delivery_due_date: date | None, lines: list, pricing: Pricing | None = None,
+                  customer_order_ref: str | None = None, source_import_id: UUID | None = None) -> UUID:
     pricing = pricing or price(conn, lines, order_date)
     order_id = conn.execute(
         """
         INSERT INTO app.orders
           (tenant_id, order_number, quote_id, customer_id, customer_name, customer_honorific, customer_address,
-           title, remarks, order_date, delivery_due_date, subtotal_amount, tax_amount, total_amount, created_by)
-        VALUES (app.current_tenant_id(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, app.current_user_id())
+           title, remarks, order_date, delivery_due_date, subtotal_amount, tax_amount, total_amount, created_by,
+           customer_order_ref, source_import_id)
+        VALUES (app.current_tenant_id(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, app.current_user_id(), %s, %s)
         RETURNING id
         """,
         (number, quote_id, customer_id, customer["name"], customer["honorific"], customer["address"],
          body_title, body_remarks, order_date, delivery_due_date,
-         pricing.totals.subtotal, pricing.totals.tax, pricing.totals.total),
+         pricing.totals.subtotal, pricing.totals.tax, pricing.totals.total, customer_order_ref, source_import_id),
     ).fetchone()["id"]
     write_lines(conn, "order", order_id, lines, pricing)
     return order_id
@@ -182,19 +205,25 @@ def list_orders(conn: TenantConn, filter: ListFilter = "all"):
     ).fetchall()
 
 
-@router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
-def create_order(body: OrderIn, conn: TenantConn):
-    """見積なしで受注を登録する。番号は登録時に採番する。"""
+def create_order_record(conn: Connection, body: OrderIn, *, source_import_id: UUID | None = None) -> UUID:
+    """見積なしの受注を登録する(画面からの登録と、注文書の取り込みの確定で共通)。"""
     customer = get_customer(conn, body.customer_id)
+    _require_unique_ref(conn, body.customer_id, body.customer_order_ref)
     order_date = body.order_date or today()
     number = conn.execute("SELECT app.next_document_number('order', %s) AS n", (order_date,)).fetchone()["n"]
     lines = [line.model_copy(update={"quote_line_id": None}) for line in body.lines]
-    order_id = _insert_order(
+    return _insert_order(
         conn, number=number, quote_id=None, customer_id=body.customer_id, customer=customer,
         body_title=body.title, body_remarks=body.remarks, order_date=order_date,
         delivery_due_date=body.delivery_due_date, lines=lines,
+        customer_order_ref=body.customer_order_ref, source_import_id=source_import_id,
     )
-    return get_order_record(conn, order_id)
+
+
+@router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
+def create_order(body: OrderIn, conn: TenantConn):
+    """見積なしで受注を登録する。番号は登録時に採番する。"""
+    return get_order_record(conn, create_order_record(conn, body))
 
 
 @router.post("/from-quote/{quote_id}", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
@@ -262,6 +291,7 @@ def update_order(order_id: UUID, body: OrderIn, conn: TenantConn):
                 raise HTTPException(status.HTTP_409_CONFLICT, f"{no}行目は請求書に載っているため変更できません")
 
     customer = get_customer(conn, body.customer_id)
+    _require_unique_ref(conn, body.customer_id, body.customer_order_ref, order_id)
     order_date = body.order_date or order["order_date"]
     mode = rounding_mode(conn)
     rates = tax_rates(conn, order_date)
@@ -283,11 +313,12 @@ def update_order(order_id: UUID, body: OrderIn, conn: TenantConn):
         UPDATE app.orders
         SET customer_id = %s, customer_name = %s, customer_honorific = %s, customer_address = %s,
             title = %s, remarks = %s, order_date = %s, delivery_due_date = %s,
-            subtotal_amount = %s, tax_amount = %s, total_amount = %s
+            subtotal_amount = %s, tax_amount = %s, total_amount = %s, customer_order_ref = %s
         WHERE id = %s
         """,
         (body.customer_id, customer["name"], customer["honorific"], customer["address"], body.title,
-         body.remarks, order_date, body.delivery_due_date, result.subtotal, result.tax, result.total, order_id),
+         body.remarks, order_date, body.delivery_due_date, result.subtotal, result.tax, result.total,
+         body.customer_order_ref, order_id),
     )
 
     # 画面から消された行を削除し、残りを行ごとに更新・追加する。

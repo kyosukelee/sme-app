@@ -47,6 +47,8 @@ TABLES: list[tuple[str, str, str]] = [
     ("quotes", "見積", "created_at, id"),
     ("quote_lines", "見積の明細", "quote_id, line_no"),
     ("quote_tax_summaries", "見積の税率ごとの合計", "quote_id, tax_rate DESC"),
+    ("document_imports", "注文書の取り込み(AIの読み取り結果と確認の状態)", "created_at, id"),
+    ("document_import_corrections", "取り込みで人が直した項目(AIの値と確定した値)", "import_id, id"),
     ("orders", "受注", "created_at, id"),
     ("order_lines", "受注の明細", "order_id, line_no"),
     ("order_tax_summaries", "受注の税率ごとの合計", "order_id, tax_rate DESC"),
@@ -80,6 +82,7 @@ README = """\
   csv/              テーブルごとのデータ(UTF-8 BOM 付きの CSV。Excel でそのまま開けます)
   控えPDF/          発行した見積書・注文請書・請求書の控え(訂正した請求書は版ごと)
   添付/             申請(ワークフロー)に添付した領収書などのファイル(申請番号ごと)
+  取り込んだ注文書/ 「注文書から取り込む」で取り込んだPDF(破棄したものを含む)
   manifest.csv      入っているファイルの一覧と SHA-256(改ざんの確認用)
 
 ■ CSV の一覧
@@ -187,6 +190,24 @@ def build_export(conn) -> tuple[bytes, str]:
                 continue
             note = "" if hashlib.sha256(data).hexdigest() == a["sha256"] else "添付したときのハッシュ値と一致しません"
             add(path, data, "申請の添付", saved_sha=a["sha256"], note=note)
+
+        imports = conn.execute(
+            """
+            SELECT storage_path, file_name, sha256, created_at
+            FROM app.document_imports
+            WHERE tenant_id = app.current_tenant_id()
+            ORDER BY created_at, id
+            """
+        ).fetchall()
+        for i, d in enumerate(imports, start=1):
+            path = f"取り込んだ注文書/{i:04d}_{_safe_name(d['file_name'])}"
+            try:
+                data = storage.read(d["storage_path"])
+            except (OSError, ValueError):
+                manifest.append([path, "取り込んだ注文書", "", "", d["sha256"], "ファイルが見つかりません(書き出せませんでした)"])
+                continue
+            note = "" if hashlib.sha256(data).hexdigest() == d["sha256"] else "取り込んだときのハッシュ値と一致しません"
+            add(path, data, "取り込んだ注文書", saved_sha=d["sha256"], note=note)
 
         buf = io.StringIO()
         writer = csv.writer(buf, lineterminator="\r\n")

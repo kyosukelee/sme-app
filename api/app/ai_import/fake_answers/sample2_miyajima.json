@@ -1,0 +1,26 @@
+{
+  "match": "MK-1123",
+  "note": "見本2: 1行目の単価を読み違えた例(18.5 を 18)。金額の不一致と、AI が自信のない項目が警告に出る",
+  "classification": {"doc_type": "order", "reason": "表題が「発注書」で、発注番号と明細がある"},
+  "extraction": {
+    "issuer_name": "宮島観光サービス株式会社",
+    "issuer_address": "広島県廿日市市4-4-4",
+    "issuer_phone": null,
+    "recipient_name": "株式会社サンプル商事",
+    "customer_order_ref": "MK-1123",
+    "order_date": "2026-11-18",
+    "delivery_due_date": null,
+    "title": "年末キャンペーン用 印刷物",
+    "remarks": "納品は2回に分けても構いません。",
+    "prices_include_tax": false,
+    "lines": [
+      {"item_code": null, "description": "観光パンフレット印刷(A4 三つ折り)", "quantity": "3,000", "unit": "部", "unit_price": "18", "amount": "55,500", "tax_rate": null, "page": 1},
+      {"item_code": null, "description": "デザイン修正費", "quantity": "1", "unit": "式", "unit_price": "15,000", "amount": "15,000", "tax_rate": null, "page": 1},
+      {"item_code": null, "description": "ポスター印刷(B2)", "quantity": "30", "unit": "枚", "unit_price": "450", "amount": "13,500", "tax_rate": null, "page": 1}
+    ],
+    "subtotal": "84,000",
+    "tax_total": "8,400",
+    "total": "92,400",
+    "uncertain_fields": ["lines[1].unit_price", "delivery_due_date"]
+  }
+}

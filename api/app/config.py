@@ -23,5 +23,17 @@ class Settings(BaseSettings):
     # 発行した書類の控えPDFの保存先(開発ではコンテナのボリューム)
     document_dir: Path = Path("/data/documents")
 
+    # AI による注文書の取り込み。ai_provider が空なら機能ごと使えない
+    #   fake: 見本の注文書(docs/samples/orders)にだけ決まった答えを返す。鍵なしで画面を試せる
+    #   openai_compatible: OpenAI 互換の API(Ollama・Gemini の互換エンドポイントなど)
+    ai_provider: Literal["", "fake", "openai_compatible"] = ""
+    ai_model: str = ""
+    ai_base_url: str | None = None
+    ai_api_key: str | None = None
+    # 構造化出力の受け取り方。function_calling が多くの互換 API で使える
+    ai_structured_method: Literal["function_calling", "json_schema", "json_mode"] = "function_calling"
+    ai_timeout_seconds: float = 60
+    ai_max_pages: int = 10
+
 
 settings = Settings()

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, type CompanyProfile, type PaymentTerms } from "../api";
+import { api, type CompanyProfile, type ImportSettings, type PaymentTerms } from "../api";
 import { useCompany } from "../company";
 import TermsFields from "../components/TermsFields";
 
@@ -226,8 +226,90 @@ export default function CompanySettings({ tenantId }: { tenantId: string }) {
         )}
       </form>
 
+      <AiImportPanel tenantId={tenantId} />
       {canEdit && <ExportPanel tenantId={tenantId} />}
     </>
+  );
+}
+
+/** AI による注文書の取り込みのオン・オフ(管理者だけ。オンにすると PDF の内容を AI のサービスに送る) */
+function AiImportPanel({ tenantId }: { tenantId: string }) {
+  const [settings, setSettings] = useState<ImportSettings | null>(null);
+  const [asking, setAsking] = useState(false); // オンにする前の確認を表示している
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ kind: "done" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    api.importSettings(tenantId).then(setSettings).catch((e: Error) => setMessage({ kind: "error", text: e.message }));
+  }, [tenantId]);
+
+  // 確認はブラウザのダイアログ(window.confirm)を使わず、画面の中に出す。
+  // 「このページでこれ以上ダイアログを表示しない」を選んだブラウザでは、ダイアログが出ずに何も起きなくなるため
+  async function toggle(enabled: boolean) {
+    setAsking(false);
+    setBusy(true);
+    setMessage(null);
+    try {
+      const saved = await api.updateImportSettings(tenantId, enabled);
+      setSettings(saved);
+      setMessage({ kind: "done", text: enabled ? "注文書の取り込みをオンにしました。" : "注文書の取り込みをオフにしました。" });
+    } catch (e) {
+      setMessage({ kind: "error", text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!settings) return null;
+  return (
+    <section className="panel export-panel">
+      <h2>AIによる注文書の取り込み</h2>
+      <p>
+        お客様から届いた注文書のPDFをAIが読み取り、受注の下書きを作ります。AIは読み取りだけを行い、金額は自社の設定で計算し直します。登録の前に必ず人が確認します。
+      </p>
+      {settings.available ? (
+        <>
+          <label className="checkbox-line">
+            <input
+              type="checkbox"
+              checked={settings.enabled || asking}
+              disabled={!settings.can_edit || busy}
+              onChange={(e) => {
+                setMessage(null);
+                if (e.target.checked) setAsking(true);
+                else if (asking) setAsking(false);
+                else toggle(false);
+              }}
+            />
+            注文書の取り込みを使う
+          </label>
+          {asking && (
+            <div className="notice-warn confirm-box" role="alertdialog" aria-label="オンにする前の確認">
+              <p>オンにすると、取り込んだ注文書のPDFの内容を AI({settings.provider})に送って読み取ります。オンにしますか？</p>
+              <div className="actions inline">
+                <button type="button" onClick={() => toggle(true)} disabled={busy}>
+                  オンにする
+                </button>
+                <button type="button" className="secondary" onClick={() => setAsking(false)} disabled={busy}>
+                  やめる
+                </button>
+              </div>
+            </div>
+          )}
+          <p className="hint">
+            読み取りに使うAI: {settings.provider}。オンにすると、取り込んだPDFの内容をこのAIに送ります。
+            {!settings.can_edit && " 切り替えは管理者だけが行えます。"}
+          </p>
+        </>
+      ) : (
+        <p className="hint">このサーバーでは AI の提供元が設定されていません(環境変数 AI_PROVIDER)。</p>
+      )}
+      {message && (
+        <p className={message.kind === "done" ? "notice" : "alert"} role="status">
+          {message.text}
+        </p>
+      )}
+    </section>
   );
 }
 

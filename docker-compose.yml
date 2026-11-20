@@ -28,6 +28,15 @@ services:
       AUTH_MODE: dev
       DEV_USER_ID: 22222222-0000-0000-0000-000000000001
       DOCUMENT_DIR: /data/documents
+      # AI による注文書の取り込み。fake は見本の注文書(docs/samples/orders)にだけ答える(APIキー不要)
+      # 実際の AI を使うときは、このフォルダの .env に書く(README の「実際の AI で注文書を読み取るとき」)
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_STRUCTURED_METHOD: ${AI_STRUCTURED_METHOD:-function_calling}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-60}
+      AI_MAX_PAGES: ${AI_MAX_PAGES:-10}
     volumes:
       - ./api:/app
       # 発行した書類の控えPDF(本番では Supabase Storage などに置き換える)

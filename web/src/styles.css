@@ -2592,3 +2592,207 @@ table.journal-table td:first-child {
     justify-self: start;
   }
 }
+
+/* ---------------------------------------------------------------
+   注文書の取り込み(AI)
+   --------------------------------------------------------------- */
+.page-head .button + .button {
+  margin-left: 0.5rem;
+}
+
+.button.secondary-link {
+  background: var(--surface);
+  color: var(--indigo);
+  border: 1px solid #b9c1bd;
+}
+
+.button.secondary-link:hover {
+  background: #eef1f6;
+}
+
+.drop-zone {
+  border-style: dashed;
+  border-width: 2px;
+  margin-bottom: 1rem;
+}
+
+.drop-zone.is-dragging {
+  border-color: var(--indigo);
+  background: #f3f6fb;
+}
+
+.file-cell,
+.file-title {
+  word-break: break-all;
+}
+
+.check-summary {
+  font-size: var(--step-0);
+}
+
+.check-summary span + span {
+  margin-left: 0.75rem;
+}
+
+.error-text {
+  color: var(--shu-dark);
+}
+
+.warn-text {
+  color: #7a4a0c;
+}
+
+.todo-text {
+  color: var(--indigo);
+}
+
+/* 確認画面: 左に元のPDF、右に入力 */
+.import-review {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.pdf-pane {
+  position: sticky;
+  top: 1rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pdf-pane iframe {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 8rem);
+  border: 0;
+}
+
+.pdf-pane > p {
+  margin: 1.25rem;
+}
+
+/* 右側の幅でも金額の列まで見えるよう、明細の列を少し詰める */
+.import-review table.lines {
+  min-width: 640px;
+}
+
+.import-review table.lines .col-price {
+  width: 6rem;
+}
+
+.import-review .field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field-grid.single,
+.import-review .field-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.check-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.check-list li {
+  font-size: var(--step-0);
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+}
+
+.check-list li.is-error {
+  background: #fbeceb;
+  color: var(--shu-dark);
+}
+
+.check-list li.is-todo {
+  background: #e4ebf5;
+  color: var(--indigo);
+}
+
+.check-list li.is-warning {
+  background: #fdf3e6;
+  color: #7a4a0c;
+}
+
+.check-list label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: start;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.panel label.candidate {
+  display: flex;
+}
+
+.panel label.candidate > input {
+  width: auto;
+}
+
+.check-list input {
+  width: auto;
+  margin: 0.2rem 0 0;
+}
+
+.reading-info dl {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.reading-info dl > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.reading-info dt {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.reading-info dd {
+  margin: 0;
+  display: grid;
+}
+
+.reading-info small {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.panel label.checkbox-line {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 700;
+}
+
+.confirm-box {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.panel .checkbox-line > input {
+  width: auto;
+}
+
+@media (max-width: 1180px) {
+  .import-review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pdf-pane {
+    position: static;
+  }
+
+  .pdf-pane iframe {
+    height: 70vh;
+  }
+}

@@ -114,6 +114,7 @@ export type OrderListItem = {
   delivery_due_date: string | null;
   total_amount: string;
   quote_number: string | null;
+  customer_order_ref: string | null; // お客様の注文番号
 };
 
 export type Order = OrderListItem & {
@@ -125,6 +126,7 @@ export type Order = OrderListItem & {
   tax_amount: string;
   updated_at: string;
   quote_id: string | null;
+  source_import_id: string | null; // 注文書の取り込みから作った受注なら、その取り込み
   lines: OrderLine[];
   tax_summaries: TaxSummary[];
   acknowledgments: { version: number; issued_at: string }[];
@@ -138,7 +140,88 @@ export type OrderInput = {
   remarks: string | null;
   order_date: string | null;
   delivery_due_date: string | null;
+  customer_order_ref: string | null;
   lines: (LineInput & { line_id: string | null; quote_line_id: string | null; delivered_on: string | null })[];
+};
+
+// ---- 注文書の取り込み(AI) ----
+export type ImportStatus = "queued" | "processing" | "review" | "failed" | "confirmed" | "discarded";
+export type ImportFilter = "all" | "open" | "confirmed" | "discarded";
+
+export type ImportSettings = { available: boolean; enabled: boolean; provider: string; can_edit: boolean };
+
+export type ImportCheck = { id: string; level: "error" | "warning"; message: string; field: string | null };
+
+export type DraftLine = {
+  description: string;
+  quantity: string;
+  unit: string;
+  unit_price: string;
+  tax_category: TaxCategory;
+  item_id: string | null;
+  item_code?: string | null;
+  doc_amount?: string | null; // 注文書に書かれていた金額(照合用)
+  doc_tax_rate?: "10" | "8" | "0" | null;
+  page?: number | null;
+};
+
+export type ImportDraft = {
+  customer_id: string | null;
+  customer_order_ref: string;
+  order_date: string; // 未入力は空文字
+  delivery_due_date: string;
+  title: string;
+  remarks: string;
+  lines: DraftLine[];
+};
+
+export type ExtractedOrder = {
+  issuer_name: string | null;
+  issuer_address: string | null;
+  issuer_phone: string | null;
+  recipient_name: string | null;
+  customer_order_ref: string | null;
+  order_date: string | null;
+  delivery_due_date: string | null;
+  subtotal: string | null;
+  tax_total: string | null;
+  total: string | null;
+  prices_include_tax: boolean | null;
+};
+
+export type CustomerCandidate = { customer_id: string; name: string; score: number; reasons: string[] };
+
+export type ImportListItem = {
+  id: string;
+  status: ImportStatus;
+  file_name: string;
+  created_at: string;
+  updated_at: string;
+  issuer_name: string | null;
+  doc_total: string | null;
+  error_count: number; // 直すまで確定できない項目(取引先の選択待ちは含めない)
+  warning_count: number;
+  needs_customer: boolean; // 取引先をまだ選んでいない
+  error_message: string | null;
+  order_id: string | null;
+  order_number: string | null;
+};
+
+export type ImportDetail = ImportListItem & {
+  page_count: number | null;
+  provider: string | null;
+  model: string | null;
+  prompt_version: string | null;
+  duration_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  classification: { doc_type: string; reason: string } | null;
+  extracted: ExtractedOrder | null;
+  draft: ImportDraft | null;
+  checks: ImportCheck[];
+  customer_candidates: CustomerCandidate[];
+  discard_reason: string | null;
+  confirmed_at: string | null;
 };
 
 export type InvoiceStatus = "draft" | "issued" | "paid" | "void";
@@ -693,6 +776,24 @@ export const api = {
     json<RequestDetail>(`/api/requests/${id}/attachments/${attachmentId}`, { method: "DELETE" }, t),
   openAttachment: (t: string, id: string, attachment: RequestAttachment) =>
     openPdf(t, `/api/requests/${id}/attachments/${attachment.id}`, attachment.file_name),
+
+  importSettings: (t: string) => json<ImportSettings>("/api/imports/settings", {}, t),
+  updateImportSettings: (t: string, enabled: boolean) =>
+    json<ImportSettings>("/api/imports/settings", { method: "PUT", body: JSON.stringify({ enabled }) }, t),
+  imports: (t: string, filter: ImportFilter) => json<ImportListItem[]>(`/api/imports?filter=${filter}`, {}, t),
+  importDetail: (t: string, id: string) => json<ImportDetail>(`/api/imports/${id}`, {}, t),
+  uploadImport: (t: string, file: { file_name: string; content_base64: string }) =>
+    json<ImportDetail>("/api/imports", { method: "POST", body: JSON.stringify(file) }, t),
+  saveImportDraft: (t: string, id: string, draft: ImportDraft) =>
+    json<ImportDetail>(`/api/imports/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) }, t),
+  confirmImport: (t: string, id: string, draft: ImportDraft, acknowledged: string[]) =>
+    json<ImportDetail>(`/api/imports/${id}/confirm`, { method: "POST", body: JSON.stringify({ draft, acknowledged }) }, t),
+  retryImport: (t: string, id: string, asOrder = false) =>
+    json<ImportDetail>(`/api/imports/${id}/retry`, { method: "POST", body: JSON.stringify({ as_order: asOrder }) }, t),
+  discardImport: (t: string, id: string, reason: string | null) =>
+    json<ImportDetail>(`/api/imports/${id}/discard`, { method: "POST", body: JSON.stringify({ reason }) }, t),
+  /** 取り込んだPDFを画面の中に表示するための URL(使い終わったら URL.revokeObjectURL する) */
+  importPdfUrl: async (t: string, id: string) => URL.createObjectURL(await (await send(`/api/imports/${id}/pdf`, {}, t)).blob()),
 
   customers: (t: string, includeInactive = false) =>
     json<Customer[]>(`/api/customers${includeInactive ? "?include_inactive=true" : ""}`, {}, t),

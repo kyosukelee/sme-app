@@ -1,0 +1,26 @@
+{
+  "match": "SN-2026-0412",
+  "note": "見本1: 読み取りがすべて正しい例。税率の印(※)と和暦の注文日を含む",
+  "classification": {"doc_type": "order", "reason": "表題が「注文書」で、注文番号と明細がある"},
+  "extraction": {
+    "issuer_name": "(株)瀬戸内物産",
+    "issuer_address": "広島県呉市3-3-3",
+    "issuer_phone": "0823-00-0000",
+    "recipient_name": "株式会社サンプル商事",
+    "customer_order_ref": "SN-2026-0412",
+    "order_date": "2026-11-20",
+    "delivery_due_date": "2026-12-10",
+    "title": "事務所用品の追加発注",
+    "remarks": null,
+    "prices_include_tax": false,
+    "lines": [
+      {"item_code": "PPR-A4", "description": "A4コピー用紙(500枚入)", "quantity": "20", "unit": "箱", "unit_price": "600", "amount": "12,000", "tax_rate": "10", "page": 1},
+      {"item_code": "PEN-BK", "description": "ボールペン 黒", "quantity": "100", "unit": "本", "unit_price": "80", "amount": "8,000", "tax_rate": "10", "page": 1},
+      {"item_code": "TEA-500", "description": "会議用お茶 500ml", "quantity": "48", "unit": "本", "unit_price": "120", "amount": "5,760", "tax_rate": "8", "page": 1}
+    ],
+    "subtotal": "25,760",
+    "tax_total": "2,460",
+    "total": "28,220",
+    "uncertain_fields": []
+  }
+}
