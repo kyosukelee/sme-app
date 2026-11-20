@@ -446,6 +446,135 @@ export type Calculation = {
   net_amount?: string | null;
 };
 
+// ---------------------------------------------------------------------
+// ワークフロー(申請・承認)
+// ---------------------------------------------------------------------
+export type RequestStatus = "draft" | "pending" | "returned" | "approved" | "rejected" | "withdrawn";
+export type RequestBox = "todo" | "mine" | "all";
+export type ApproverKind = "manager" | "group" | "user";
+
+/** 申請種別の入力項目の定義 */
+export type FormField = {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "date" | "number" | "select";
+  required?: boolean;
+  options?: string[];
+  max_length?: number;
+  min?: number;
+  after?: string;
+};
+
+export type RouteStepDef = {
+  step_no: number;
+  approver_kind: ApproverKind;
+  approver_group_id: string | null;
+  approver_user_id: string | null;
+  min_amount: string | null;
+  label: string;
+};
+
+export type RequestType = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  form_schema: FormField[];
+  amount_mode: "required" | "optional" | "none";
+  amount_label: string;
+  is_active: boolean;
+  steps: RouteStepDef[];
+};
+
+export type RequestTypeInput = {
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  steps: { approver_kind: ApproverKind; approver_group_id: string | null; approver_user_id: string | null; min_amount: string | null }[];
+};
+
+export type PersonRef = { user_id: string; display_name: string };
+
+export type RouteStep = {
+  step_no: number;
+  label: string;
+  approver_kind: ApproverKind;
+  status: "waiting" | "pending" | "approved" | "returned" | "rejected" | "skipped" | "cancelled";
+  skip_reason: string | null;
+  approvers: PersonRef[];
+  acted_by: PersonRef | null;
+  acted_at: string | null;
+  comment: string | null;
+};
+
+export type RoutePreview = { steps: RouteStep[]; auto_approve: boolean; error: string | null };
+
+export type RequestListItem = {
+  id: string;
+  request_number: string | null;
+  type_name: string;
+  type_code: string;
+  title: string;
+  applicant_id: string;
+  applicant_name: string;
+  amount: string | null;
+  status: RequestStatus;
+  current_step_label: string | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  updated_at: string;
+  is_my_turn: boolean;
+};
+
+export type RequestEvent = {
+  id: number;
+  action: "submit" | "resubmit" | "approve" | "return" | "reject" | "withdraw" | "comment" | "skip" | "complete";
+  round: number | null;
+  step_no: number | null;
+  step_label: string | null;
+  actor: PersonRef | null;
+  comment: string | null;
+  created_at: string;
+};
+
+export type RequestAttachment = {
+  id: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by_name: string | null;
+  created_at: string;
+};
+
+export type RequestDetail = RequestListItem & {
+  request_type_id: string;
+  form_schema: FormField[];
+  form_data: Record<string, string>;
+  amount_mode: "required" | "optional" | "none";
+  amount_label: string;
+  round: number;
+  steps: RouteStep[];
+  events: RequestEvent[];
+  attachments: RequestAttachment[];
+  permissions: {
+    can_edit: boolean;
+    can_submit: boolean;
+    can_delete: boolean;
+    can_withdraw: boolean;
+    can_act: boolean;
+    can_comment: boolean;
+  };
+};
+
+export type RequestInput = {
+  request_type_id: string;
+  title: string;
+  form_data: Record<string, string>;
+  amount: string | null;
+};
+
+export type UploadFile = { file_name: string; content_type: string | null; content_base64: string };
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -532,6 +661,38 @@ export const api = {
   updateApproverGroup: (t: string, id: string, body: { name: string; user_ids: string[] }) =>
     json<ApproverGroup>(`/api/approver-groups/${id}`, { method: "PUT", body: JSON.stringify(body) }, t),
   deleteApproverGroup: (t: string, id: string) => json<void>(`/api/approver-groups/${id}`, { method: "DELETE" }, t),
+
+  requestTypes: (t: string, includeInactive = false) =>
+    json<RequestType[]>(`/api/request-types${includeInactive ? "?include_inactive=true" : ""}`, {}, t),
+  updateRequestType: (t: string, id: string, body: RequestTypeInput) =>
+    json<RequestType>(`/api/request-types/${id}`, { method: "PUT", body: JSON.stringify(body) }, t),
+  routePreview: (t: string, requestTypeId: string, amount: string | null, signal?: AbortSignal) =>
+    json<RoutePreview>(
+      "/api/requests/route-preview",
+      { method: "POST", body: JSON.stringify({ request_type_id: requestTypeId, amount }), signal },
+      t,
+    ),
+  requests: (t: string, box: RequestBox, status?: RequestStatus) =>
+    json<RequestListItem[]>(`/api/requests?box=${box}${status ? `&status_filter=${status}` : ""}`, {}, t),
+  requestSummary: (t: string) => json<{ todo: number; returned: number }>("/api/requests/summary", {}, t),
+  request: (t: string, id: string) => json<RequestDetail>(`/api/requests/${id}`, {}, t),
+  createRequest: (t: string, input: RequestInput) =>
+    json<RequestDetail>("/api/requests", { method: "POST", body: JSON.stringify(input) }, t),
+  updateRequest: (t: string, id: string, input: RequestInput) =>
+    json<RequestDetail>(`/api/requests/${id}`, { method: "PUT", body: JSON.stringify(input) }, t),
+  deleteRequest: (t: string, id: string) => json<void>(`/api/requests/${id}`, { method: "DELETE" }, t),
+  requestAction: (
+    t: string,
+    id: string,
+    action: "submit" | "approve" | "return" | "reject" | "withdraw" | "comments",
+    comment: string | null = null,
+  ) => json<RequestDetail>(`/api/requests/${id}/${action}`, { method: "POST", body: JSON.stringify({ comment }) }, t),
+  addAttachment: (t: string, id: string, file: UploadFile) =>
+    json<RequestDetail>(`/api/requests/${id}/attachments`, { method: "POST", body: JSON.stringify(file) }, t),
+  deleteAttachment: (t: string, id: string, attachmentId: string) =>
+    json<RequestDetail>(`/api/requests/${id}/attachments/${attachmentId}`, { method: "DELETE" }, t),
+  openAttachment: (t: string, id: string, attachment: RequestAttachment) =>
+    openPdf(t, `/api/requests/${id}/attachments/${attachment.id}`, attachment.file_name),
 
   customers: (t: string, includeInactive = false) =>
     json<Customer[]>(`/api/customers${includeInactive ? "?include_inactive=true" : ""}`, {}, t),
@@ -683,7 +844,7 @@ export const api = {
  */
 async function openPdf(t: string, path: string, filename: string, preopened?: Window | null): Promise<void> {
   const tab = preopened === undefined ? window.open("", "_blank") : preopened;
-  if (tab) tab.document.title = "PDFを作成しています…";
+  if (tab) tab.document.title = path.includes("/attachments/") ? "ファイルを開いています…" : "PDFを作成しています…";
   try {
     const blob = await (await send(path, {}, t)).blob();
     const url = URL.createObjectURL(blob);

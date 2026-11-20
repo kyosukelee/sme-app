@@ -61,8 +61,12 @@ def tenant_conn(
         yield conn
 
 
-UserConn = Annotated[Connection, Depends(user_conn)]
-TenantConn = Annotated[Connection, Depends(tenant_conn)]
+# scope="function": 応答を返す前にトランザクションを確定(コミット)する。
+# 既定("request")のままだと応答を返した後にコミットされるため、保存の直後に次の操作が届くと
+# まだ反映されていないデータを読むことがある(作成した申請種別が見つからない、など)。
+# コミットに失敗したときも、成功の応答を返してしまわずにエラーにできる
+UserConn = Annotated[Connection, Depends(user_conn, scope="function")]
+TenantConn = Annotated[Connection, Depends(tenant_conn, scope="function")]
 
 
 def admin_conn(conn: TenantConn) -> Connection:

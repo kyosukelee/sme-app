@@ -1907,3 +1907,688 @@ table.journal-table td:first-child {
   width: auto;
   margin: 0;
 }
+
+/* ---------------------------------------------------------------------
+   ワークフロー(申請・承認)
+   --------------------------------------------------------------------- */
+.nav-count {
+  min-width: 1.5em;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--shu);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tab-count.is-alert {
+  background: var(--shu);
+  color: #fff;
+  font-weight: 700;
+}
+
+.badge.req-draft {
+  background: #eceeed;
+  color: var(--muted);
+}
+
+.badge.req-pending {
+  background: #e4ebf5;
+  color: var(--indigo);
+}
+
+.badge.req-returned {
+  background: #fdf3e6;
+  border-color: #e3c08f;
+  color: #7a4a0c;
+}
+
+.badge.req-approved {
+  background: #e8f2ec;
+  color: var(--ok);
+}
+
+.badge.req-rejected {
+  background: #fbeceb;
+  color: var(--shu-dark);
+}
+
+.badge.req-withdrawn {
+  background: none;
+  border-color: var(--rule);
+  color: var(--muted);
+}
+
+.page-head .badge {
+  align-self: center;
+}
+
+.switcher.filter {
+  margin: -0.25rem 0 1rem;
+}
+
+/* 申請の一覧(スマホでも読めるカード) */
+.request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.request-card:hover {
+  border-color: #b9c1bd;
+  border-left-color: #b9c1bd;
+}
+
+.request-card.is-my-turn,
+.request-card.is-my-turn:hover {
+  border-left-color: var(--shu);
+}
+
+.request-card-main {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.request-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.type-tag {
+  padding: 0 0.45rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--indigo);
+  font-weight: 700;
+}
+
+.request-title {
+  font-size: var(--step-1);
+  overflow-wrap: anywhere;
+}
+
+.request-sub {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.request-card-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.request-step {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.is-my-turn .request-step {
+  color: var(--shu-dark);
+  font-weight: 700;
+}
+
+/* 申請の種類を選ぶ */
+.type-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.type-card {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  align-content: start;
+  text-align: left;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  font-weight: 400;
+}
+
+.type-card:hover:not(:disabled) {
+  background: #f7f9fb;
+  border-color: var(--indigo-active);
+}
+
+.type-card strong {
+  font-size: var(--step-2);
+  color: var(--indigo);
+}
+
+.type-card span {
+  font-size: var(--step-0);
+}
+
+.type-card small {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.form-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.875rem 1rem;
+}
+
+.form-fields .wide,
+.facts .wide {
+  grid-column: 1 / -1;
+}
+
+.return-reason {
+  margin-bottom: 1rem;
+  border-left: 4px solid #e3c08f;
+}
+
+.return-reason p {
+  margin-top: 0.2rem;
+  white-space: pre-wrap;
+}
+
+.my-turn {
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--ok);
+}
+
+/* 添付 */
+.attachment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.attachment-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.attachment-list li > span {
+  overflow-wrap: anywhere;
+}
+
+.attachment-list small {
+  color: var(--muted);
+}
+
+.attachment-list .link-button:last-child {
+  margin-left: auto;
+}
+
+.file-pick input {
+  max-width: 100%;
+}
+
+/* 承認ルート(PC は左から右、スマホは上から下) */
+.route {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0 0;
+  display: flex;
+}
+
+.route-step {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 0.4rem;
+  text-align: center;
+}
+
+/* 前の印からこの印への線 */
+.route-step + .route-step::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  left: calc(-50% + 20px);
+  right: calc(50% + 20px);
+  height: 2px;
+  background: var(--rule);
+}
+
+.route-step.is-reached::before {
+  background: var(--ok);
+}
+
+.route-step.is-pending::before {
+  background: var(--indigo-active);
+}
+
+.route-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 0.45rem;
+  border-radius: 50%;
+  border: 2px solid #b9c1bd;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.route-text {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.route-label {
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+.route-names {
+  font-size: var(--step-1);
+  overflow-wrap: anywhere;
+}
+
+.route-state {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.route-step.is-start .route-mark,
+.route-step.is-approved .route-mark,
+.route-step.is-end.is-approved .route-mark {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #fff;
+}
+
+.route-step.is-start:not(.is-reached) .route-mark {
+  border-color: #b9c1bd;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.route-step.is-pending .route-mark {
+  border-color: var(--indigo-active);
+  background: var(--indigo-active);
+  color: #fff;
+  box-shadow: 0 0 0 4px #dfe7f3;
+}
+
+.route-step.is-pending .route-state {
+  color: var(--indigo-active);
+  font-weight: 700;
+}
+
+.route-step.is-skipped .route-mark,
+.route-step.is-cancelled .route-mark {
+  border-style: dashed;
+}
+
+.route-step.is-skipped .route-names,
+.route-step.is-cancelled .route-names {
+  color: var(--muted);
+}
+
+.route-step.is-returned .route-mark {
+  border-color: #c78a33;
+  background: #fdf3e6;
+  color: #7a4a0c;
+}
+
+.route-step.is-rejected .route-mark,
+.route-step.is-end.is-closed .route-mark {
+  border-color: var(--shu);
+  background: #fbeceb;
+  color: var(--shu-dark);
+}
+
+.route-step.is-returned .route-state,
+.route-step.is-rejected .route-state {
+  color: var(--shu-dark);
+  font-weight: 700;
+}
+
+.editor-side .route {
+  flex-direction: column;
+}
+
+/* 縦に並べるとき(入力画面の右側と、スマホ) */
+.editor-side .route-step,
+.route-panel-vertical .route-step {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 0.75rem;
+  padding: 0 0 1rem;
+  text-align: left;
+}
+
+.editor-side .route-step + .route-step::before {
+  display: none;
+}
+
+.editor-side .route-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 38px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--rule);
+}
+
+.editor-side .route-mark {
+  margin: 0;
+}
+
+.route-panel {
+  margin-bottom: 1rem;
+}
+
+/* 申請の詳細 */
+.request-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.request-actions {
+  position: sticky;
+  top: 1rem;
+}
+
+.request-actions .panel > button.secondary {
+  justify-self: start;
+}
+
+.facts .amount {
+  font-size: var(--step-2);
+  font-weight: 700;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline li {
+  position: relative;
+  padding: 0 0 0.9rem 1.25rem;
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b9c1bd;
+}
+
+.timeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1.2rem;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule);
+}
+
+.timeline li.is-approve::before,
+.timeline li.is-complete::before {
+  background: var(--ok);
+}
+
+.timeline li.is-return::before,
+.timeline li.is-reject::before,
+.timeline li.is-withdraw::before {
+  background: var(--shu);
+}
+
+.timeline li.is-submit::before,
+.timeline li.is-resubmit::before {
+  background: var(--indigo-active);
+}
+
+.timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.4rem;
+}
+
+.timeline-head small {
+  margin-left: 0.25rem;
+  color: var(--muted);
+}
+
+.timeline-head time {
+  margin-left: auto;
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.timeline-comment {
+  margin-top: 0.3rem;
+  padding: 0.5rem 0.75rem;
+  background: #f4f6f5;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.actions.decision {
+  grid-template-columns: 1fr 1fr;
+}
+
+.actions.decision button:first-child {
+  grid-column: 1 / -1;
+}
+
+/* 申請種別・承認ルートの設定 */
+.type-row h2 .badge {
+  margin-left: 0.5rem;
+}
+
+.type-row.is-inactive {
+  opacity: 0.75;
+}
+
+.step-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.step-summary li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.45rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #f9faf9;
+}
+
+.step-summary li + li {
+  position: relative;
+}
+
+.step-summary li > span:nth-child(2) {
+  display: grid;
+  line-height: 1.35;
+}
+
+.step-summary small,
+.fields-line {
+  font-size: var(--step-0);
+  color: var(--muted);
+}
+
+.step-no {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--indigo);
+  color: #fff;
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+
+.condition {
+  font-size: var(--step-0);
+  color: #7a4a0c;
+  background: #fdf3e6;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+}
+
+.step-editor {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.step-editor legend {
+  font-size: var(--step-0);
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+
+.step-edit-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.step-edit-row .step-no {
+  margin-top: 1.6rem;
+}
+
+.step-edit-row .link-button {
+  margin-top: 1.7rem;
+}
+
+.step-hint {
+  margin-top: 1.9rem;
+}
+
+.add-step {
+  justify-self: start;
+}
+
+@media (max-width: 1100px) {
+  .request-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .request-actions {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .form-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .request-card {
+    align-items: flex-start;
+    padding: 0.75rem 0.9rem;
+  }
+
+  /* スマホでは承認ルートを縦に並べる */
+  .route {
+    flex-direction: column;
+  }
+
+  .route-step {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 0.75rem;
+    padding: 0 0 1rem;
+    text-align: left;
+  }
+
+  .route-step + .route-step::before {
+    display: none;
+  }
+
+  .route-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: 2px;
+    width: 2px;
+    background: var(--rule);
+  }
+
+  .route-mark {
+    margin: 0;
+  }
+
+  .step-edit-row {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
+  .step-edit-row > :not(.step-no) {
+    grid-column: 2;
+  }
+
+  .step-edit-row .step-no,
+  .step-edit-row .link-button,
+  .step-hint {
+    margin-top: 0;
+  }
+
+  .step-edit-row .link-button {
+    justify-self: start;
+  }
+}

@@ -17,9 +17,13 @@ import QuoteList from "./pages/QuoteList";
 import QuotePage from "./pages/QuotePage";
 import Receipts from "./pages/Receipts";
 import Reconcile from "./pages/Reconcile";
+import RequestEditor from "./pages/requests/RequestEditor";
+import RequestList from "./pages/requests/RequestList";
+import RequestPage from "./pages/requests/RequestPage";
+import RequestTypes from "./pages/requests/RequestTypes";
 import { navigate, useHashPath } from "./router";
 
-type NavItem = { label: string; href?: string; section?: string };
+type NavItem = { label: string; href?: string; section?: string; count?: "todo" };
 
 const NAV: { group: string; items: NavItem[] }[] = [
   {
@@ -35,6 +39,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
     ],
   },
   {
+    group: "ワークフロー",
+    items: [{ label: "申請・承認", href: "#/requests", section: "/requests", count: "todo" }],
+  },
+  {
     group: "マスタ",
     items: [{ label: "取引先", href: "#/customers", section: "/customers" }, { label: "商品・サービス", href: "#/items", section: "/items" }],
   },
@@ -43,6 +51,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { label: "自社情報", href: "#/settings/company", section: "/settings/company" },
       { label: "社員・担当役割", href: "#/settings/members", section: "/settings/members" },
+      { label: "申請種別・承認ルート", href: "#/settings/request-types", section: "/settings/request-types" },
     ],
   },
 ];
@@ -55,6 +64,7 @@ export default function App() {
   const [devUser, setDevUserState] = useState(getDevUser());
   const [me, setMe] = useState<Member | null>(null);
   const [people, setPeople] = useState<Member[]>([]); // 開発用の切り替えの候補(選んだ会社の社員)
+  const [todo, setTodo] = useState(0); // 自分の承認待ちの件数(メニューに出す)
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -89,11 +99,25 @@ export default function App() {
     if (devMode) api.members(tenantId).then(setPeople).catch(() => setPeople([]));
   }, [tenantId, devUser, devMode]);
 
+  // 承認待ちの件数は、画面を移るたびと、承認・申請をしたときに取り直す
+  useEffect(() => {
+    if (!tenantId) return;
+    const refresh = () =>
+      api
+        .requestSummary(tenantId)
+        .then((s) => setTodo(s.todo))
+        .catch(() => setTodo(0));
+    refresh();
+    window.addEventListener("requests-changed", refresh);
+    return () => window.removeEventListener("requests-changed", refresh);
+  }, [tenantId, devUser, path]);
+
   function backToList() {
     // 書類1件の画面は前の会社(利用者)のものなので、一覧に戻る
     if (path.startsWith("/quotes/")) navigate("/quotes");
     if (path.startsWith("/orders/")) navigate("/orders");
     if (path.startsWith("/invoices/")) navigate("/invoices");
+    if (path.startsWith("/requests/")) navigate("/requests");
   }
 
   function switchTenant(id: string) {
@@ -127,6 +151,11 @@ export default function App() {
                         aria-current={path.startsWith(item.section!) ? "page" : undefined}
                       >
                         {item.label}
+                        {item.count === "todo" && todo > 0 && (
+                          <span className="nav-count" aria-label={`承認待ち${todo}件`}>
+                            {todo}
+                          </span>
+                        )}
                       </a>
                     ) : (
                       <span className="nav-link is-pending">
@@ -195,7 +224,7 @@ export default function App() {
           )}
           {tenantId && (
             <CompanyProvider key={`${tenantId}:${devUser ?? ""}`} tenantId={tenantId}>
-              <Page path={path} tenantId={tenantId} />
+              <Page path={path} tenantId={tenantId} isAdmin={me?.role === "admin"} todo={todo} />
             </CompanyProvider>
           )}
         </main>
@@ -204,7 +233,21 @@ export default function App() {
   );
 }
 
-function Page({ path, tenantId }: { path: string; tenantId: string }) {
+function Page({ path, tenantId, isAdmin, todo }: { path: string; tenantId: string; isAdmin: boolean; todo: number }) {
+  if (path === "/requests" || path.startsWith("/requests?")) {
+    const box = new URLSearchParams(path.split("?")[1] ?? "").get("box");
+    const value = box === "todo" || box === "mine" || box === "all" ? box : todo > 0 ? "todo" : "mine";
+    return <RequestList tenantId={tenantId} box={value} isAdmin={isAdmin} />;
+  }
+  if (path === "/requests/new" || path.startsWith("/requests/new?")) {
+    const type = new URLSearchParams(path.split("?")[1] ?? "").get("type");
+    return <RequestEditor key={`new-${tenantId}-${type ?? ""}`} tenantId={tenantId} initialType={type} />;
+  }
+  const requestEdit = path.match(/^\/requests\/([0-9a-f-]{36})\/edit$/);
+  if (requestEdit) return <RequestEditor key={`edit-${requestEdit[1]}`} tenantId={tenantId} id={requestEdit[1]} />;
+  const request = path.match(/^\/requests\/([0-9a-f-]{36})$/);
+  if (request) return <RequestPage key={request[1]} tenantId={tenantId} id={request[1]} />;
+  if (path === "/settings/request-types") return <RequestTypes tenantId={tenantId} />;
   if (path === "/customers") return <Customers tenantId={tenantId} />;
   if (path === "/items") return <Items tenantId={tenantId} />;
   if (path === "/settings/company") return <CompanySettings tenantId={tenantId} />;

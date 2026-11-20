@@ -304,5 +304,15 @@ def update_group(group_id: UUID, body: GroupIn, conn: AdminConn):
 
 @router.delete("/api/approver-groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_group(group_id: UUID, conn: AdminConn):
+    used = conn.execute(
+        """
+        SELECT DISTINCT t.name FROM app.route_steps s JOIN app.request_types t ON t.id = s.request_type_id
+        WHERE s.approver_group_id = %s ORDER BY t.name
+        """,
+        (group_id,),
+    ).fetchall()
+    if used:
+        names = "、".join(f"「{u['name']}」" for u in used)
+        raise HTTPException(status.HTTP_409_CONFLICT, f"申請種別{names}の承認の段で使っているため削除できません。先に承認の段を直してください")
     if conn.execute("DELETE FROM app.approver_groups WHERE id = %s RETURNING id", (group_id,)).fetchone() is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "担当役割が見つかりません")

@@ -29,3 +29,8 @@ def save(key: str, data: bytes) -> str:
 
 def read(key: str) -> bytes:
     return _full_path(key).read_bytes()
+
+
+def delete(key: str) -> None:
+    """保存したファイルを消す(下書きの添付を外したときだけ使う)。なければ何もしない。"""
+    _full_path(key).unlink(missing_ok=True)

@@ -40,6 +40,8 @@ TABLES: list[tuple[str, str, str]] = [
     ("member_profiles", "社員(氏名・部署・上長)", "created_at, user_id"),
     ("approver_groups", "担当役割(経理担当・代表など)", "name"),
     ("approver_group_members", "担当役割に属する社員", "group_id, user_id"),
+    ("request_types", "申請種別(入力項目の定義)", "sort_order, name"),
+    ("route_steps", "申請種別ごとの承認の段", "request_type_id, step_no"),
     ("customers", "取引先", "created_at, id"),
     ("items", "商品・サービス", "created_at, id"),
     ("quotes", "見積", "created_at, id"),
@@ -60,6 +62,10 @@ TABLES: list[tuple[str, str, str]] = [
     ("journal_settings", "仕訳の設定(会計ソフト・勘定科目・税区分)", "tenant_id"),
     ("journal_exports", "仕訳CSVの出力履歴", "created_at, id"),
     ("journal_export_items", "出力した仕訳", "entry_date, id"),
+    ("requests", "申請(ワークフロー)", "created_at, id"),
+    ("request_steps", "申請ごとの承認ルートと各段の結果", "request_id, round, step_no"),
+    ("request_events", "申請・承認・差戻しなどの履歴", "id"),
+    ("request_attachments", "申請の添付ファイルの一覧", "created_at, id"),
     ("number_sequences", "採番の状況", "doc_type, period"),
     ("issued_documents", "発行した書類の控えの一覧(ハッシュ値つき)", "issued_at, id"),
     ("audit_logs", "変更の履歴", "id"),
@@ -73,6 +79,7 @@ README = """\
 ■ 中身
   csv/              テーブルごとのデータ(UTF-8 BOM 付きの CSV。Excel でそのまま開けます)
   控えPDF/          発行した見積書・注文請書・請求書の控え(訂正した請求書は版ごと)
+  添付/             申請(ワークフロー)に添付した領収書などのファイル(申請番号ごと)
   manifest.csv      入っているファイルの一覧と SHA-256(改ざんの確認用)
 
 ■ CSV の一覧
@@ -122,6 +129,11 @@ def _safe(name: str) -> str:
     return re.sub(r"[^0-9A-Za-z_\-]", "_", name)
 
 
+def _safe_name(name: str) -> str:
+    """添付のファイル名。日本語は残し、フォルダの区切りや使えない記号だけを置き換える。"""
+    return re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", name)[:120] or "file"
+
+
 def build_export(conn) -> tuple[bytes, str]:
     """ZIP の中身と、会社名を返す。"""
     tenant = conn.execute("SELECT name FROM app.tenants WHERE id = app.current_tenant_id()").fetchone()
@@ -157,6 +169,24 @@ def build_export(conn) -> tuple[bytes, str]:
                 continue
             note = "" if hashlib.sha256(data).hexdigest() == d["sha256"] else "発行時のハッシュ値と一致しません"
             add(path, data, folder, saved_sha=d["sha256"], note=note)
+
+        attachments = conn.execute(
+            """
+            SELECT a.storage_path, a.file_name, a.sha256, coalesce(r.request_number, '下書き_' || left(r.id::text, 8)) AS folder
+            FROM app.request_attachments a JOIN app.requests r ON r.id = a.request_id
+            WHERE a.tenant_id = app.current_tenant_id()
+            ORDER BY r.created_at, a.created_at
+            """
+        ).fetchall()
+        for i, a in enumerate(attachments, start=1):
+            path = f"添付/{_safe(a['folder'])}/{i:04d}_{_safe_name(a['file_name'])}"
+            try:
+                data = storage.read(a["storage_path"])
+            except (OSError, ValueError):
+                manifest.append([path, "申請の添付", "", "", a["sha256"], "添付ファイルが見つかりません(書き出せませんでした)"])
+                continue
+            note = "" if hashlib.sha256(data).hexdigest() == a["sha256"] else "添付したときのハッシュ値と一致しません"
+            add(path, data, "申請の添付", saved_sha=a["sha256"], note=note)
 
         buf = io.StringIO()
         writer = csv.writer(buf, lineterminator="\r\n")
