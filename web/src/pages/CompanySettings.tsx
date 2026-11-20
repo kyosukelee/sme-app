@@ -171,7 +171,7 @@ export default function CompanySettings({ tenantId }: { tenantId: string }) {
             </label>
             <label>
               郵便番号
-              <input {...field("postal_code")} placeholder="730-0011" />
+              <input {...field("postal_code")} placeholder="123-4567" />
             </label>
             <label>
               電話番号

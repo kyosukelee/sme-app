@@ -3,9 +3,9 @@
   "note": "見本1: 読み取りがすべて正しい例。税率の印(※)と和暦の注文日を含む",
   "classification": {"doc_type": "order", "reason": "表題が「注文書」で、注文番号と明細がある"},
   "extraction": {
-    "issuer_name": "(株)瀬戸内物産",
-    "issuer_address": "広島県呉市3-3-3",
-    "issuer_phone": "0823-00-0000",
+    "issuer_name": "(株)みなと物産",
+    "issuer_address": "サンプル県みなと市3-3-3",
+    "issuer_phone": "000-0000-0001",
     "recipient_name": "株式会社サンプル商事",
     "customer_order_ref": "SN-2026-0412",
     "order_date": "2026-11-20",

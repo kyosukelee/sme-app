@@ -27,7 +27,7 @@ def settings_for(software, **over):
 
 
 SALE = {
-    "date": "2026-11-20", "summary": "瀬戸内物産 請求書INV-2026-0001", "partner": "株式会社瀬戸内物産",
+    "date": "2026-11-20", "summary": "みなと物産 請求書INV-2026-0001", "partner": "株式会社みなと物産",
     "lines": [
         {"debit": side("receivable", Decimal(110000)), "credit": side("sales", Decimal(110000), "sales_standard", Decimal(10000))},
         {"debit": side("receivable", Decimal(10800)), "credit": side("sales", Decimal(10800), "sales_reduced", Decimal(800))},
@@ -45,7 +45,7 @@ def test_弥生インポート形式():
     r = rows(data)
     assert len(r) == 2 and all(len(row) == 25 for row in r)  # 見出し行なし・25項目
     assert [row[0] for row in r] == ["2110", "2101"]  # 複数行の伝票の1行目・最終行
-    assert r[0][3:10] == ["2026/11/20", "売掛金", "株式会社瀬戸内物産", "", "対象外", "110000", ""]
+    assert r[0][3:10] == ["2026/11/20", "売掛金", "株式会社みなと物産", "", "対象外", "110000", ""]
     assert r[0][10:16] == ["売上高", "", "", "課税売上込10%", "110000", "10000"]
     assert r[1][13:16] == ["課税売上込軽減8%", "10800", "800"]
     assert (r[0][19], r[0][24]) == ("3", "no")  # 振替伝票・調整なし
@@ -56,7 +56,7 @@ def test_マネーフォワード形式():
     r = rows(data)
     assert r[0][:3] == ["取引No", "取引日", "借方勘定科目"] and len(r[0]) == 27
     assert [row[0] for row in r[1:]] == ["1", "1"]  # 同じ取引Noで1つの複合仕訳
-    assert r[1][2:10] == ["売掛金", "", "", "株式会社瀬戸内物産", "対象外", "", "110000", ""]
+    assert r[1][2:10] == ["売掛金", "", "", "株式会社みなと物産", "対象外", "", "110000", ""]
     assert r[1][10:18] == ["売上高", "", "", "", "課税売上 10%", "", "110000", ""]  # 税額は空欄(MFの指定)
     assert r[2][14] == "課税売上 (軽)8%"
 
@@ -70,7 +70,7 @@ def test_freee形式():
     header = r[0]
     first = dict(zip(header, r[1]))
     assert (first["借方勘定科目"], first["借方補助科目"], first["借方取引先"], first["借方税区分"]) == (
-        "売掛金", "株式会社瀬戸内物産", "株式会社瀬戸内物産", "対象外")
+        "売掛金", "株式会社みなと物産", "株式会社みなと物産", "対象外")
     assert (first["貸方税区分"], first["貸方金額"], first["貸方税額"]) == ("課税売上10%", "110000", "10000")
 
 

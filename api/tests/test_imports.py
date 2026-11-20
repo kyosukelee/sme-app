@@ -24,8 +24,8 @@ _maker = importlib.util.spec_from_file_location("make_sample_orders", Path(__fil
 _module = importlib.util.module_from_spec(_maker)
 _maker.loader.exec_module(_module)
 _module.main(SAMPLES)
-SAMPLE_1 = SAMPLES / "注文書_見本1_瀬戸内物産.pdf"
-SAMPLE_2 = SAMPLES / "注文書_見本2_宮島観光サービス.pdf"
+SAMPLE_1 = SAMPLES / "注文書_見本1_みなと物産.pdf"
+SAMPLE_2 = SAMPLES / "注文書_見本2_あさひ観光サービス.pdf"
 
 
 def h(user=YAMADA, tenant=TENANT_A):
@@ -92,14 +92,14 @@ def test_見本1を取り込んで確定すると受注になる(client):
     detail = client.get(f"/api/imports/{detail['id']}", headers=h()).json()
     assert detail["status"] == "review"
     assert detail["provider"] == "fake" and detail["prompt_version"] == "order_v1" and detail["page_count"] == 1
-    assert detail["issuer_name"] == "(株)瀬戸内物産" and detail["doc_total"] == "28220"
+    assert detail["issuer_name"] == "(株)みなと物産" and detail["doc_total"] == "28220"
     assert detail["draft"]["customer_order_ref"] == "SN-2026-0412"
     assert detail["draft"]["order_date"] == "2026-11-20"
     assert [l["tax_category"] for l in detail["draft"]["lines"]] == ["standard", "standard", "reduced"]
 
     # 取引先は候補を出すだけで、選ぶまでは確定できない
     top = detail["customer_candidates"][0]
-    assert top["name"] == "株式会社瀬戸内物産" and "名前が一致" in top["reasons"]
+    assert top["name"] == "株式会社みなと物産" and "名前が一致" in top["reasons"]
     assert [c["id"] for c in detail["checks"] if c["level"] == "error"] == ["customer_missing"]
     # 一覧では「取引先の選択待ち」として、ほかのエラーとは分けて数える
     assert detail["needs_customer"] is True and detail["error_count"] == 0
@@ -159,7 +159,7 @@ def test_見本2は読み違いを警告で知らせる(client):
             "ai_uncertain", "tax_assumed"} <= warnings
     assert detail["draft"]["delivery_due_date"] == ""
 
-    cid = customer_id(client, "宮島観光サービス")
+    cid = customer_id(client, "あさひ観光サービス")
     draft = draft_body(detail, customer_id=cid)
     # 警告を確認しないと確定できない
     res = client.post(f"/api/imports/{detail['id']}/confirm", json={"draft": draft, "acknowledged": []}, headers=h())

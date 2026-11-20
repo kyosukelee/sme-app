@@ -8,19 +8,19 @@ from app.domain.names import name_similarity, normalize_company
 
 
 def test_会社名の正規化():
-    assert normalize_company("(株)瀬戸内物産") == "瀬戸内物産"
-    assert normalize_company("㈱瀬戸内物産 御中") == "瀬戸内物産"
-    assert normalize_company("株式会社 瀬戸内物産") == "瀬戸内物産"
-    assert normalize_company("瀬戸内物産株式会社") == "瀬戸内物産"
+    assert normalize_company("(株)みなと物産") == "みなと物産"
+    assert normalize_company("㈱みなと物産 御中") == "みなと物産"
+    assert normalize_company("株式会社 みなと物産") == "みなと物産"
+    assert normalize_company("みなと物産株式会社") == "みなと物産"
     assert normalize_company("ＡＢＣ商会") == "abc商会"
-    assert normalize_company("一般社団法人 ひろしま観光協会") == "ひろしま観光協会"
+    assert normalize_company("一般社団法人 さくら観光協会") == "さくら観光協会"
 
 
 def test_会社名の近さ():
-    assert name_similarity("瀬戸内物産", "瀬戸内物産") == 100
-    assert name_similarity("瀬戸内物産", "瀬戸内物産呉支店") == 80
-    assert 0 < name_similarity("瀬戸内物産", "瀬戸内商事") < 80
-    assert name_similarity("", "瀬戸内物産") == 0
+    assert name_similarity("みなと物産", "みなと物産") == 100
+    assert name_similarity("みなと物産", "みなと物産北支店") == 80
+    assert 0 < name_similarity("みなと物産", "みなと商事") < 80
+    assert name_similarity("", "みなと物産") == 0
 
 
 def test_数字と日付の読み替え():
@@ -34,21 +34,21 @@ def test_数字と日付の読み替え():
 
 
 CUSTOMERS = [
-    {"id": "c1", "name": "株式会社瀬戸内物産", "address": "広島県呉市3-3-3", "document_names": []},
-    {"id": "c2", "name": "宮島観光サービス", "address": "広島県廿日市市4-4-4", "document_names": ["宮島観光(株) 経理課"]},
-    {"id": "c3", "name": "福山精機株式会社", "address": None, "document_names": []},
+    {"id": "c1", "name": "株式会社みなと物産", "address": "サンプル県みなと市3-3-3", "document_names": []},
+    {"id": "c2", "name": "あさひ観光サービス", "address": "サンプル県あさひ市4-4-4", "document_names": ["あさひ観光(株) 経理課"]},
+    {"id": "c3", "name": "ひかり精機株式会社", "address": None, "document_names": []},
 ]
 
 
 def test_取引先の候補():
-    found = ic.customer_candidates("(株)瀬戸内物産", "広島県呉市3-3-3", CUSTOMERS)
+    found = ic.customer_candidates("(株)みなと物産", "サンプル県みなと市3-3-3", CUSTOMERS)
     assert found[0]["customer_id"] == "c1"
     assert found[0]["score"] == 100
     assert found[0]["reasons"] == ["名前が一致", "住所が近い"]
     assert all(c["customer_id"] != "c3" for c in found)  # 似ていない取引先は出さない
 
     # 前に確定したときの「注文書上の名前」は登録済みとして最優先
-    learned = ic.customer_candidates("宮島観光(株) 経理課", None, CUSTOMERS)
+    learned = ic.customer_candidates("あさひ観光(株) 経理課", None, CUSTOMERS)
     assert learned[0]["customer_id"] == "c2"
     assert learned[0]["reasons"] == ["注文書上の名前として登録済み"]
 
@@ -63,7 +63,7 @@ ITEMS = [
 
 def order(**over):
     base = {
-        "issuer_name": "(株)瀬戸内物産",
+        "issuer_name": "(株)みなと物産",
         "recipient_name": "株式会社サンプル商事",
         "customer_order_ref": "SN-1",
         "order_date": "2026-11-20",

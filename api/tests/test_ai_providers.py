@@ -11,7 +11,7 @@ from app.ai_import.graph import read_order
 from app.ai_import.providers import ExtractionError, LangChainProvider, ProviderError
 
 ORDER = {
-    "issuer_name": "(株)瀬戸内物産",
+    "issuer_name": "(株)みなと物産",
     "customer_order_ref": "SN-9",
     "order_date": "2026-11-20",
     "lines": [{"description": "A4コピー用紙", "quantity": "20", "unit": "箱", "unit_price": "600", "amount": "12,000"}],
@@ -102,7 +102,7 @@ def test_形が合わなければ1回だけやり直す(provider):
         (200, json.dumps(ORDER, ensure_ascii=False)),
     ]
     result = read_order(provider, "注文書")
-    assert result.error is None and result.order.issuer_name == "(株)瀬戸内物産"
+    assert result.error is None and result.order.issuer_name == "(株)みなと物産"
     assert len(FakeOpenAI.requests) == 3
 
 

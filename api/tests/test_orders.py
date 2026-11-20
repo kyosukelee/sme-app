@@ -16,7 +16,7 @@ H = {"X-Tenant-Id": TENANT_A}
 @pytest.fixture(scope="module")
 def customer_id(client):
     customers = client.get("/api/customers", headers=H).json()
-    return next(c["id"] for c in customers if c["name"] == "株式会社瀬戸内物産")
+    return next(c["id"] for c in customers if c["name"] == "株式会社みなと物産")
 
 
 def quote_lines():
@@ -60,7 +60,7 @@ def test_見積から受注に変換する(client, customer_id):
     assert order["status"] == "open"
     assert order["quote_id"] == quote["id"]
     assert order["quote_number"] == quote["quote_number"]
-    assert (order["customer_name"], order["title"], order["remarks"]) == ("株式会社瀬戸内物産", "導入一式", "月末締め")
+    assert (order["customer_name"], order["title"], order["remarks"]) == ("株式会社みなと物産", "導入一式", "月末締め")
     assert order["total_amount"] == quote["total_amount"]
     assert [l["quote_line_id"] for l in order["lines"]] == [l["line_id"] for l in quote["lines"]]
 

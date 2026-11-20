@@ -5,7 +5,7 @@
 """
 
 TENANT_A = "a1000000-0000-0000-0000-000000000001"  # サンプル商事
-TENANT_B = "b2000000-0000-0000-0000-000000000002"  # 広島テスト工業
+TENANT_B = "b2000000-0000-0000-0000-000000000002"  # テスト工業
 
 
 def test_ヘルスチェック(client):
@@ -14,15 +14,15 @@ def test_ヘルスチェック(client):
 
 def test_所属している会社が2社見える(client):
     names = {t["name"] for t in client.get("/api/me/tenants").json()}
-    assert names == {"サンプル商事", "広島テスト工業"}
+    assert names == {"サンプル商事", "テスト工業"}
 
 
 def test_選んだ会社の取引先だけが返る(client):
     a = {c["name"] for c in client.get("/api/customers", headers={"X-Tenant-Id": TENANT_A}).json()}
     b = {c["name"] for c in client.get("/api/customers", headers={"X-Tenant-Id": TENANT_B}).json()}
 
-    assert "株式会社瀬戸内物産" in a
-    assert "福山精機株式会社" in b
+    assert "株式会社みなと物産" in a
+    assert "ひかり精機株式会社" in b
     assert a.isdisjoint(b)
 
 

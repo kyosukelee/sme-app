@@ -16,7 +16,7 @@ H = {"X-Tenant-Id": TENANT_A}
 @pytest.fixture(scope="module")
 def customer_id(client):
     customers = client.get("/api/customers", headers=H).json()
-    return next(c["id"] for c in customers if c["name"] == "株式会社瀬戸内物産")
+    return next(c["id"] for c in customers if c["name"] == "株式会社みなと物産")
 
 
 def lines():
@@ -55,7 +55,7 @@ def test_作成から発行までの流れ(client, customer_id):
     quote = res.json()
     assert quote["status"] == "draft"
     assert quote["quote_number"] is None
-    assert quote["customer_name"] == "株式会社瀬戸内物産"
+    assert quote["customer_name"] == "株式会社みなと物産"
 
     # 更新(明細の入れ替え)。保存された金額は計算APIと一致する
     res = client.put(f"/api/quotes/{quote['id']}", json={"customer_id": customer_id, "title": "Web制作一式", "lines": lines()}, headers=H)

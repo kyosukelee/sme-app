@@ -232,7 +232,7 @@ function CustomerForm({
       </label>
       <label>
         振込名義(任意)
-        <textarea rows={2} value={payerText} onChange={(e) => setPayerText(e.target.value)} placeholder="例: ｶ)ｾﾄｳﾁﾌﾞﾂｻﾝ" />
+        <textarea rows={2} value={payerText} onChange={(e) => setPayerText(e.target.value)} placeholder="例: ｶ)ﾐﾅﾄﾌﾞﾂｻﾝ" />
         <span className="hint">
           銀行の明細に出る振込人の名前です。1行に1つ書きます。入金消込で、この名義の入金にこの取引先を候補として出します(確定すると自動で追加されます)。
         </span>

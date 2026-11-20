@@ -117,7 +117,7 @@ def test_担当役割(client):
     assert client.delete(f"/api/approver-groups/{group['id']}", headers=H).status_code == 204
     # ほかの会社の社員は入れられない
     res = client.post("/api/approver-groups", json={"name": "他社", "user_ids": [YAMADA]}, headers={"X-Tenant-Id": TENANT_B})
-    assert res.status_code == 403  # 広島テスト工業では一般の利用者
+    assert res.status_code == 403  # テスト工業では一般の利用者
 
 
 def test_ほかの会社の社員は見えない(client):

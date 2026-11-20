@@ -9,7 +9,7 @@ import re
 import pytest
 
 TENANT_A = "a1000000-0000-0000-0000-000000000001"  # サンプル商事: 登録番号あり・管理者
-TENANT_B = "b2000000-0000-0000-0000-000000000002"  # 広島テスト工業: 登録番号なし・一般
+TENANT_B = "b2000000-0000-0000-0000-000000000002"  # テスト工業: 登録番号なし・一般
 H = {"X-Tenant-Id": TENANT_A}
 HB = {"X-Tenant-Id": TENANT_B}
 
@@ -20,12 +20,12 @@ def customer_id_of(client, name, headers=H):
 
 @pytest.fixture(scope="module")
 def setouchi(client):
-    return customer_id_of(client, "株式会社瀬戸内物産")
+    return customer_id_of(client, "株式会社みなと物産")
 
 
 @pytest.fixture(scope="module")
 def miyajima(client):
-    return customer_id_of(client, "宮島観光サービス")
+    return customer_id_of(client, "あさひ観光サービス")
 
 
 def make_order(client, customer_id, lines, headers=H):
@@ -263,9 +263,9 @@ def test_訂正版は同じ番号で版を上げ_旧版と控えが残る(client
 # 登録番号のない会社・自社情報
 # ---------------------------------------------------------------------
 def test_登録番号のない会社の請求書(client):
-    customer = customer_id_of(client, "福山精機株式会社", HB)
+    customer = customer_id_of(client, "ひかり精機株式会社", HB)
     invoice = issue(client, direct_invoice(client, customer, headers=HB)["id"], headers=HB)
-    assert invoice["issuer_name"] == "広島テスト工業"
+    assert invoice["issuer_name"] == "テスト工業"
     assert invoice["issuer_registration_number"] is None
 
 
@@ -289,7 +289,7 @@ def test_自社情報は管理者だけが変更できる(client):
     assert res.json()["profile"]["registration_number"] == "T9876543210987"
     assert res.json()["terms"]["closing_day"] == 20
 
-    # 一般ユーザー(広島テスト工業)は見られるが、変更はできない
+    # 一般ユーザー(テスト工業)は見られるが、変更はできない
     company_b = client.get("/api/company", headers=HB).json()
     assert company_b["can_edit"] is False
     assert client.put("/api/company", json={**body}, headers=HB).status_code == 403

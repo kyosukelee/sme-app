@@ -48,7 +48,7 @@ SAMPLE_1 = page("""
   </table>
 </div>
 <div class="from">
-  (株)瀬戸内物産 総務部<br>広島県呉市3-3-3<br>TEL 0823-00-0000
+  (株)みなと物産 総務部<br>サンプル県みなと市3-3-3<br>TEL 000-0000-0001
 </div>
 <table class="lines">
   <tr><th>No.</th><th>品番</th><th>品名</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr>
@@ -79,7 +79,7 @@ SAMPLE_2 = page("""
   </table>
 </div>
 <div class="from">
-  宮島観光サービス株式会社<br>広島県廿日市市4-4-4<br>担当: 佐藤
+  あさひ観光サービス株式会社<br>サンプル県あさひ市4-4-4<br>担当: 佐藤
 </div>
 <table class="lines">
   <tr><th>品名</th><th>数量</th><th>単価(税抜)</th><th>金額</th></tr>
@@ -95,7 +95,7 @@ SAMPLE_2 = page("""
 <p class="note">備考: 納品は2回に分けても構いません。</p>
 """)
 
-SAMPLES = {"注文書_見本1_瀬戸内物産.pdf": SAMPLE_1, "注文書_見本2_宮島観光サービス.pdf": SAMPLE_2}
+SAMPLES = {"注文書_見本1_みなと物産.pdf": SAMPLE_1, "注文書_見本2_あさひ観光サービス.pdf": SAMPLE_2}
 
 
 def main(out: Path) -> None:

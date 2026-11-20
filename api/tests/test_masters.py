@@ -9,7 +9,7 @@ import io
 import zipfile
 
 TENANT_A = "a1000000-0000-0000-0000-000000000001"  # サンプル商事(管理者)
-TENANT_B = "b2000000-0000-0000-0000-000000000002"  # 広島テスト工業(一般の利用者)
+TENANT_B = "b2000000-0000-0000-0000-000000000002"  # テスト工業(一般の利用者)
 H = {"X-Tenant-Id": TENANT_A}
 HB = {"X-Tenant-Id": TENANT_B}
 
@@ -31,7 +31,7 @@ def test_取引先の変更と締め日の設定(client):
     assert created["terms"] is None  # 空なら会社の設定に従う
 
     res = client.put(f"/api/customers/{created['id']}",
-                     json=customer_body(name="マスタテスト商会(新)", address="広島県呉市1-1", terms=TERMS_20_10), headers=H)
+                     json=customer_body(name="マスタテスト商会(新)", address="サンプル県みなと市1-1", terms=TERMS_20_10), headers=H)
     assert res.status_code == 200, res.text
     updated = res.json()
     assert updated["name"] == "マスタテスト商会(新)"

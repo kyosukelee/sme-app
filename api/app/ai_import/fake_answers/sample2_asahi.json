@@ -3,8 +3,8 @@
   "note": "見本2: 1行目の単価を読み違えた例(18.5 を 18)。金額の不一致と、AI が自信のない項目が警告に出る",
   "classification": {"doc_type": "order", "reason": "表題が「発注書」で、発注番号と明細がある"},
   "extraction": {
-    "issuer_name": "宮島観光サービス株式会社",
-    "issuer_address": "広島県廿日市市4-4-4",
+    "issuer_name": "あさひ観光サービス株式会社",
+    "issuer_address": "サンプル県あさひ市4-4-4",
     "issuer_phone": null,
     "recipient_name": "株式会社サンプル商事",
     "customer_order_ref": "MK-1123",
