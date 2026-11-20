@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Tenant } from "./api";
+import { api, getDevUser, setDevUser, type Member, type Tenant } from "./api";
 import { CompanyProvider } from "./company";
 import CompanySettings from "./pages/CompanySettings";
 import Customers from "./pages/Customers";
@@ -9,6 +9,7 @@ import InvoiceList from "./pages/InvoiceList";
 import InvoicePage from "./pages/InvoicePage";
 import Items from "./pages/Items";
 import Journal from "./pages/Journal";
+import Members from "./pages/Members";
 import OrderList from "./pages/OrderList";
 import OrderPage from "./pages/OrderPage";
 import QuoteEditor from "./pages/QuoteEditor";
@@ -39,7 +40,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "設定",
-    items: [{ label: "自社情報", href: "#/settings/company", section: "/settings" }],
+    items: [
+      { label: "自社情報", href: "#/settings/company", section: "/settings/company" },
+      { label: "社員・担当役割", href: "#/settings/members", section: "/settings/members" },
+    ],
   },
 ];
 
@@ -47,24 +51,60 @@ export default function App() {
   const path = useHashPath();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantId, setTenantId] = useState("");
+  const [devMode, setDevMode] = useState(false);
+  const [devUser, setDevUserState] = useState(getDevUser());
+  const [me, setMe] = useState<Member | null>(null);
+  const [people, setPeople] = useState<Member[]>([]); // 開発用の切り替えの候補(選んだ会社の社員)
   const [error, setError] = useState("");
 
   useEffect(() => {
     api
+      .session()
+      .then((s) => {
+        setDevMode(s.auth_mode === "dev");
+        if (s.auth_mode !== "dev" && getDevUser()) {
+          setDevUser(null); // 本番では開発用の切り替えを使わない
+          setDevUserState(null);
+        }
+      })
+      .catch(() => setDevMode(false));
+  }, []);
+
+  useEffect(() => {
+    setError("");
+    api
       .myTenants()
       .then((list) => {
         setTenants(list);
-        if (list.length > 0) setTenantId(list[0].id);
+        setTenantId((current) => (list.some((t) => t.id === current) ? current : (list[0]?.id ?? "")));
+        if (list.length === 0) setError("利用できる会社がありません。");
       })
       .catch((e: Error) => setError(e.message));
-  }, []);
+  }, [devUser]);
 
-  function switchTenant(id: string) {
-    setTenantId(id);
-    // 書類1件の画面は前の会社のものなので、一覧に戻る
+  useEffect(() => {
+    setMe(null);
+    if (!tenantId) return;
+    api.myProfile(tenantId).then(setMe).catch(() => setMe(null));
+    if (devMode) api.members(tenantId).then(setPeople).catch(() => setPeople([]));
+  }, [tenantId, devUser, devMode]);
+
+  function backToList() {
+    // 書類1件の画面は前の会社(利用者)のものなので、一覧に戻る
     if (path.startsWith("/quotes/")) navigate("/quotes");
     if (path.startsWith("/orders/")) navigate("/orders");
     if (path.startsWith("/invoices/")) navigate("/invoices");
+  }
+
+  function switchTenant(id: string) {
+    setTenantId(id);
+    backToList();
+  }
+
+  function switchUser(id: string) {
+    setDevUser(id || null);
+    setDevUserState(id || null);
+    backToList();
   }
 
   const tenant = tenants.find((t) => t.id === tenantId);
@@ -111,9 +151,26 @@ export default function App() {
               </span>
               <div>
                 <p className="company-name">{tenant.name}</p>
-                <p className="company-role">{tenant.role === "admin" ? "管理者" : "一般"}としてログイン中</p>
+                <p className="company-role">
+                  {me ? `${me.display_name}(${me.role === "admin" ? "管理者" : "一般"})` : tenant.role === "admin" ? "管理者" : "一般"}
+                  としてログイン中
+                </p>
               </div>
             </div>
+          )}
+          <div className="switchers">
+          {devMode && people.length > 0 && (
+            <label className="switcher dev-switcher">
+              <span>利用者を切り替える(開発用)</span>
+              <select value={me?.user_id ?? ""} onChange={(e) => switchUser(e.target.value)}>
+                {people.map((p) => (
+                  <option key={p.user_id} value={p.user_id}>
+                    {p.display_name}
+                    {p.role === "admin" ? "(管理者)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
           {tenants.length > 1 && (
             <label className="switcher">
@@ -127,6 +184,7 @@ export default function App() {
               </select>
             </label>
           )}
+          </div>
         </header>
 
         <main className="content">
@@ -136,7 +194,7 @@ export default function App() {
             </p>
           )}
           {tenantId && (
-            <CompanyProvider key={tenantId} tenantId={tenantId}>
+            <CompanyProvider key={`${tenantId}:${devUser ?? ""}`} tenantId={tenantId}>
               <Page path={path} tenantId={tenantId} />
             </CompanyProvider>
           )}
@@ -153,6 +211,7 @@ function Page({ path, tenantId }: { path: string; tenantId: string }) {
   if (path === "/documents") return <DocumentSearch key={`documents-${tenantId}`} tenantId={tenantId} />;
   if (path === "/reconcile") return <Reconcile tenantId={tenantId} />;
   if (path === "/journal") return <Journal tenantId={tenantId} />;
+  if (path === "/settings/members") return <Members tenantId={tenantId} />;
   if (path === "/receipts" || path.startsWith("/receipts?")) {
     const customer = new URLSearchParams(path.split("?")[1] ?? "").get("customer");
     return <Receipts key={`receipts-${tenantId}`} tenantId={tenantId} initialCustomerId={customer} />;

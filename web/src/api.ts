@@ -3,6 +3,29 @@
 
 export type Tenant = { id: string; name: string; role: "admin" | "member" };
 
+export type Session = { user_id: string; auth_mode: "dev" | "supabase" };
+
+export type Member = {
+  user_id: string;
+  display_name: string;
+  email: string | null;
+  department: string | null;
+  manager_user_id: string | null;
+  manager_name: string | null;
+  role: "admin" | "member";
+  is_active: boolean;
+  groups: { id: string; name: string }[];
+  is_me: boolean;
+};
+
+export type MemberInput = Pick<Member, "display_name" | "email" | "department" | "manager_user_id" | "role" | "is_active">;
+
+export type ApproverGroup = {
+  id: string;
+  name: string;
+  members: { user_id: string; display_name: string; is_active: boolean }[];
+};
+
 export type Customer = {
   id: string;
   name: string;
@@ -432,10 +455,35 @@ export class ApiError extends Error {
   }
 }
 
+// 開発用の利用者の切り替え(AUTH_MODE=dev のときだけ API が読む)。選んだ利用者はこのブラウザに覚えておく
+const DEV_USER_KEY = "sme.devUserId";
+let devUserId: string | null = (() => {
+  try {
+    return localStorage.getItem(DEV_USER_KEY);
+  } catch {
+    return null;
+  }
+})();
+
+export function getDevUser(): string | null {
+  return devUserId;
+}
+
+export function setDevUser(id: string | null): void {
+  devUserId = id;
+  try {
+    if (id) localStorage.setItem(DEV_USER_KEY, id);
+    else localStorage.removeItem(DEV_USER_KEY);
+  } catch {
+    // 保存できなくても、この画面を開いているあいだは切り替えが効く
+  }
+}
+
 async function send(path: string, init: RequestInit = {}, tenantId?: string): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set("Content-Type", "application/json");
   if (tenantId) headers.set("X-Tenant-Id", tenantId);
+  if (devUserId) headers.set("X-Dev-User-Id", devUserId);
 
   let res: Response;
   try {
@@ -453,7 +501,12 @@ async function send(path: string, init: RequestInit = {}, tenantId?: string): Pr
 
 function errorMessage(status: number, detail: unknown): string {
   if (typeof detail === "string") return detail;
-  if (status === 422 && Array.isArray(detail)) return "入力内容に誤りがあります。品名・数量・単価を確認してください。";
+  if (status === 422 && Array.isArray(detail)) {
+    // 入力チェックで日本語の理由を返しているときは、それをそのまま出す
+    const msg = (detail[0] as { msg?: unknown } | undefined)?.msg;
+    if (typeof msg === "string" && /[ぁ-んァ-ヶ一-龠]/.test(msg)) return msg.replace(/^Value error, /, "");
+    return "入力内容に誤りがあります。品名・数量・単価を確認してください。";
+  }
   return `エラーが発生しました(${status})`;
 }
 
@@ -464,6 +517,21 @@ async function json<T>(path: string, init: RequestInit = {}, tenantId?: string):
 
 export const api = {
   myTenants: () => json<Tenant[]>("/api/me/tenants"),
+
+  session: () => json<Session>("/api/me"),
+  members: (t: string, includeInactive = false) =>
+    json<Member[]>(`/api/members${includeInactive ? "?include_inactive=true" : ""}`, {}, t),
+  myProfile: (t: string) => json<Member>("/api/members/me", {}, t),
+  createMember: (t: string, input: MemberInput) =>
+    json<Member>("/api/members", { method: "POST", body: JSON.stringify(input) }, t),
+  updateMember: (t: string, id: string, input: MemberInput) =>
+    json<Member>(`/api/members/${id}`, { method: "PUT", body: JSON.stringify(input) }, t),
+  approverGroups: (t: string) => json<ApproverGroup[]>("/api/approver-groups", {}, t),
+  createApproverGroup: (t: string, body: { name: string; user_ids: string[] }) =>
+    json<ApproverGroup>("/api/approver-groups", { method: "POST", body: JSON.stringify(body) }, t),
+  updateApproverGroup: (t: string, id: string, body: { name: string; user_ids: string[] }) =>
+    json<ApproverGroup>(`/api/approver-groups/${id}`, { method: "PUT", body: JSON.stringify(body) }, t),
+  deleteApproverGroup: (t: string, id: string) => json<void>(`/api/approver-groups/${id}`, { method: "DELETE" }, t),
 
   customers: (t: string, includeInactive = false) =>
     json<Customer[]>(`/api/customers${includeInactive ? "?include_inactive=true" : ""}`, {}, t),

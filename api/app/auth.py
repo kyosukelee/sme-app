@@ -11,9 +11,18 @@ from app.config import settings
 from app.db import scoped_transaction
 
 
-def current_user_id() -> UUID:
-    """ログイン中の利用者IDを返す。"""
+def current_user_id(
+    dev_user: Annotated[UUID | None, Header(alias="X-Dev-User-Id")] = None,
+) -> UUID:
+    """ログイン中の利用者IDを返す。
+
+    開発モード(AUTH_MODE=dev)では DEV_USER_ID の利用者として扱う。画面の「利用者を切り替える(開発用)」で
+    X-Dev-User-Id ヘッダーが付いていれば、その利用者として扱う(承認ルートを複数の人で試すため)。
+    このヘッダーは開発モードのときだけ読み、本番では無視する。
+    """
     if settings.auth_mode == "dev":
+        if dev_user is not None:
+            return dev_user
         if settings.dev_user_id is None:
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "DEV_USER_ID が設定されていません")
         return settings.dev_user_id
@@ -37,11 +46,18 @@ def tenant_conn(
     """画面で選んだ会社の接続。所属していない会社なら 403 にする。"""
     with scoped_transaction(user_id, tenant_id) as conn:
         row = conn.execute(
-            "SELECT role FROM app.memberships WHERE tenant_id = %s AND user_id = %s",
+            """
+            SELECT m.role, coalesce(p.is_active, true) AS is_active
+            FROM app.memberships m
+            LEFT JOIN app.member_profiles p ON p.tenant_id = m.tenant_id AND p.user_id = m.user_id
+            WHERE m.tenant_id = %s AND m.user_id = %s
+            """,
             (tenant_id, user_id),
         ).fetchone()
         if row is None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "この会社のデータを扱う権限がありません")
+        if not row["is_active"]:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "この会社では利用を停止されています。管理者に確認してください")
         yield conn
 
 

@@ -1809,3 +1809,101 @@ button.disclosure:hover:not(:disabled) {
 table.journal-table td:first-child {
   white-space: nowrap;
 }
+
+/* 上部の切り替え(会社・開発用の利用者) */
+.switchers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+/* 開発用の切り替えは、本番の機能と見分けられるよう琥珀色の点線で囲む */
+.dev-switcher span {
+  color: #8a5a10;
+}
+
+.dev-switcher select {
+  border: 1px dashed #c08a2b;
+  background: #fffaf0;
+}
+
+/* 社員・担当役割 */
+.groups-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.groups-panel h2,
+.groups-panel p {
+  margin: 0;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.group-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.group-row strong {
+  min-width: 7rem;
+}
+
+.group-members {
+  flex: 1;
+  color: var(--muted);
+}
+
+.group-form {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fbfcfb;
+}
+
+.member-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.member-picks legend {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.member-picks .check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 400;
+}
+
+.member-picks input {
+  width: auto;
+  margin: 0;
+}
