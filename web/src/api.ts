@@ -305,6 +305,60 @@ export type BankStatement = {
   candidates: MatchCandidate[];
 };
 
+// ---- 仕訳CSV ----
+export type Software = "kanjo_bugyo" | "yayoi" | "freee" | "mf";
+export type AccountKey = "receivable" | "sales" | "bank" | "fee" | "withholding";
+export type TaxKey =
+  | "sales_standard"
+  | "sales_reduced"
+  | "sales_exempt"
+  | "sales_non_taxable"
+  | "sales_export"
+  | "out_of_scope"
+  | "purchase_standard";
+
+export type JournalSettingsInput = {
+  software: Software;
+  sales_date_basis: "transaction" | "issue";
+  customer_as_sub: boolean;
+  accounts: Record<AccountKey, { name: string; code: string; sub: string }>;
+  tax_labels: Record<Software, Record<TaxKey, string>>;
+};
+
+export type JournalSettings = JournalSettingsInput & {
+  can_edit: boolean;
+  defaults: Record<Software, Record<TaxKey, string>>;
+};
+
+export type JournalSide = { account: string; sub: string; tax: string; amount: string; tax_amount: string };
+
+export type JournalEntry = {
+  kind: "entry" | "reversal";
+  source_type: "invoice" | "receipt" | "payment";
+  date: string;
+  summary: string;
+  lines: { debit: JournalSide; credit: JournalSide }[];
+};
+
+export type JournalPreview = {
+  software: Software;
+  software_name: string;
+  entries: JournalEntry[];
+  before_count: number;
+  problem: string | null;
+};
+
+export type JournalExport = {
+  id: string;
+  software: Software;
+  software_name: string;
+  date_from: string;
+  date_to: string;
+  entry_count: number;
+  created_at: string;
+  is_latest: boolean;
+};
+
 export type StatementsResponse = {
   statements: BankStatement[];
   counts: Record<StatementStatus, number>;
@@ -425,17 +479,21 @@ export const api = {
     json<Item>(`/api/items/${id}`, { method: "PUT", body: JSON.stringify(input) }, t),
 
   /** データ一式(CSV と控えPDF)を ZIP でダウンロードする */
-  downloadExport: async (t: string) => {
-    const res = await send("/api/export", {}, t);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = exportFilename(res.headers.get("Content-Disposition")) ?? "export.zip";
-    document.body.append(a); // 画面に置かないとファイル名が使われないブラウザがある
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  downloadExport: (t: string) => download(t, "/api/export", "export.zip"),
+
+  journalSettings: (t: string) => json<JournalSettings>("/api/journal/settings", {}, t),
+  updateJournalSettings: (t: string, body: JournalSettingsInput) =>
+    json<JournalSettings>("/api/journal/settings", { method: "PUT", body: JSON.stringify(body) }, t),
+  journalPending: (t: string, from: string, to: string) =>
+    json<JournalPreview>(`/api/journal/pending?date_from=${from}&date_to=${to}`, {}, t),
+  createJournalExport: (t: string, from: string, to: string) =>
+    json<JournalExport>("/api/journal/exports", { method: "POST", body: JSON.stringify({ date_from: from, date_to: to }) }, t),
+  journalExports: (t: string) => json<JournalExport[]>("/api/journal/exports", {}, t),
+  deleteJournalExport: (t: string, id: string) => json<void>(`/api/journal/exports/${id}`, { method: "DELETE" }, t),
+  /** 仕訳の CSV をダウンロードする。Shift_JIS にない文字を置き換えた数を返す */
+  downloadJournal: async (t: string, id: string) => {
+    const res = await download(t, `/api/journal/exports/${id}/file`, "journal.csv");
+    return Number(res.headers.get("X-Replaced-Characters") ?? "0");
   },
 
   quotes: (t: string, filter: QuoteFilter) => json<QuoteListItem[]>(`/api/quotes?filter=${filter}`, {}, t),
@@ -575,6 +633,21 @@ async function openPdf(t: string, path: string, filename: string, preopened?: Wi
     tab?.close();
     throw e;
   }
+}
+
+/** ファイルをダウンロードする。ファイル名は Content-Disposition に従う */
+async function download(t: string, path: string, fallback: string): Promise<Response> {
+  const res = await send(path, {}, t);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = exportFilename(res.headers.get("Content-Disposition")) ?? fallback;
+  document.body.append(a); // 画面に置かないとファイル名が使われないブラウザがある
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return res;
 }
 
 /** Content-Disposition から日本語のファイル名(filename*)を取り出す */

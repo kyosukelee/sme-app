@@ -1659,3 +1659,149 @@ table.csv-preview tr.is-skipped td {
     padding-left: 0;
   }
 }
+
+/* ---------------------------------------------------------------------
+   仕訳の出力
+   --------------------------------------------------------------------- */
+.journal-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.journal-panel p {
+  margin: 0;
+}
+
+.journal-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.period-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.period-inputs input {
+  width: auto;
+}
+
+.hint.warn {
+  color: #8a5a10;
+}
+
+table.journal-table td {
+  vertical-align: top;
+}
+
+table.journal-table small {
+  display: block;
+  color: var(--muted);
+  font-size: var(--step-0);
+}
+
+table.journal-table tr.entry-first td {
+  border-top: 2px solid var(--rule);
+}
+
+table.journal-table tr.is-reversal td {
+  background: #fdf6f5;
+}
+
+.history-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+button.disclosure {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--indigo);
+  font-weight: 700;
+  font-size: var(--step-2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button.disclosure::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+button.disclosure[aria-expanded="true"]::before {
+  transform: rotate(45deg);
+}
+
+.journal-settings {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.journal-settings h3 {
+  margin: 0.5rem 0 0;
+  font-size: var(--step-2);
+}
+
+.journal-settings p {
+  margin: 0;
+}
+
+.journal-settings .check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  font-weight: 400;
+}
+
+.journal-settings .check input {
+  width: auto;
+  margin: 0;
+}
+
+table.settings-table th[scope="row"] {
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.settings-table th small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: var(--step-0);
+  white-space: normal;
+}
+
+table.settings-table input {
+  min-width: 8rem;
+}
+
+button.disclosure:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  table.settings-table th[scope="row"] {
+    white-space: normal;
+    min-width: 6rem;
+  }
+
+  table.settings-table input {
+    min-width: 7rem;
+  }
+}

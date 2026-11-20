@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app import errors
 from app.config import settings
 from app.db import pool
-from app.routers import archive, bank, company, customers, export, invoices, items, me, orders, pricing, quotes, receipts
+from app.routers import archive, bank, company, customers, export, invoices, items, journal, me, orders, pricing, quotes, receipts
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ app.include_router(orders.router)
 app.include_router(invoices.router)
 app.include_router(receipts.router)
 app.include_router(bank.router)
+app.include_router(journal.router)
 app.include_router(company.router)
 app.include_router(archive.router)
 app.include_router(export.router)
