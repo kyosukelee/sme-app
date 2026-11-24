@@ -36,6 +36,8 @@ DB(PostgreSQL)・API(Python / FastAPI)・画面(React)を Docker Compose でま�
 | ![申請と承認ルート](docs/images/sme-workflow.jpg) | ![申請種別・承認ルートの設定](docs/images/sme-workflow-settings.jpg) |
 | **注文書の取り込み(AI)** | **取り込みの確認(元のPDFと見比べて確定)** |
 | ![注文書の取り込み](docs/images/sme-imports.jpg) | ![取り込みの確認](docs/images/sme-import-review.jpg) |
+| **操作の履歴(変更前と変更後)** | **閲覧・書き出しの記録** |
+| ![操作の履歴](docs/images/sme-logs.jpg) | ![閲覧・書き出しの記録](docs/images/sme-logs-access.jpg) |
 
 画面のデータ(会社・取引先・社員・口座・登録番号)はすべて架空です。
 
