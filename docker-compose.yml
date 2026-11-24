@@ -37,6 +37,9 @@ services:
       AI_STRUCTURED_METHOD: ${AI_STRUCTURED_METHOD:-function_calling}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-60}
       AI_MAX_PAGES: ${AI_MAX_PAGES:-10}
+      # アプリのログ。開発では読みやすい text、本番では既定の json(1行1件)にする
+      LOG_FORMAT: ${LOG_FORMAT:-text}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./api:/app
       # 発行した書類の控えPDF(本番では Supabase Storage などに置き換える)

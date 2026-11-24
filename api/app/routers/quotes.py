@@ -15,6 +15,7 @@ from psycopg import Connection
 from pydantic import BaseModel, Field
 
 from app import storage
+from app import activity
 from app.auth import TenantConn
 from app.clock import today
 from app.documents import company, get_customer, pdf_response, read_lines, write_lines
@@ -223,4 +224,5 @@ def quote_pdf(quote_id: UUID, conn: TenantConn):
     ).fetchone()
     if doc is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "発行時の控えが見つかりません")
+    activity.record(conn, "open_document", f"見積書 {quote['quote_number']}", "quote", quote_id)
     return pdf_response(storage.read(doc["storage_path"]), f"見積書_{quote['quote_number']}.pdf")

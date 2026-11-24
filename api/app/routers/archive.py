@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app import storage
+from app import activity
 from app.auth import TenantConn
 from app.documents import pdf_response
 from app.domain.text import to_halfwidth
@@ -119,6 +120,8 @@ def _get(conn, doc_id: UUID) -> dict:
 def document_pdf(doc_id: UUID, conn: TenantConn):
     doc = _get(conn, doc_id)
     name = f"{DOC_LABELS[doc['doc_type']]}_{doc['document_number']}_第{doc['version']}版.pdf"
+    activity.record(conn, "open_document", f"{DOC_LABELS[doc['doc_type']]} {doc['document_number']} 第{doc['version']}版(書類の検索から)",
+                    "issued_document", doc_id)
     return pdf_response(storage.read(doc["storage_path"]), name)
 
 

@@ -25,6 +25,7 @@ from app import storage
 from app.ai_import import review
 from app.ai_import.providers import is_available, provider_label
 from app.ai_import.runner import fail_stale, process_import
+from app import activity
 from app.auth import AdminConn, TenantConn
 from app.documents import pdf_response
 from app.domain import import_checks as ic
@@ -301,6 +302,7 @@ def get_import(import_id: UUID, conn: TenantConn):
 @router.get("/{import_id}/pdf")
 def get_pdf(import_id: UUID, conn: TenantConn) -> Response:
     row = _row(conn, import_id)
+    activity.record(conn, "open_import_pdf", f"取り込んだ注文書「{row['file_name']}」", "document_import", import_id)
     return pdf_response(storage.read(row["storage_path"]), row["file_name"])
 
 

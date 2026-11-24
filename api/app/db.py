@@ -13,6 +13,7 @@ from psycopg import Connection
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from app import logs
 from app.config import settings
 
 pool = ConnectionPool(
@@ -32,4 +33,6 @@ def scoped_transaction(user_id: UUID, tenant_id: UUID | None = None) -> Iterator
             conn.execute("SELECT set_config('app.user_id', %s, true)", (str(user_id),))
             if tenant_id is not None:
                 conn.execute("SELECT set_config('app.tenant_id', %s, true)", (str(tenant_id),))
+            # 変更履歴にリクエストID を残し、アプリのログと突き合わせられるようにする
+            conn.execute("SELECT set_config('app.request_id', %s, true)", (logs.request_id() or "",))
             yield conn

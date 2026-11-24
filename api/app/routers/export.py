@@ -25,7 +25,7 @@ from uuid import UUID
 from fastapi import APIRouter
 from fastapi.responses import Response
 
-from app import storage
+from app import activity, storage
 from app.auth import AdminConn
 from app.clock import today
 
@@ -71,6 +71,7 @@ TABLES: list[tuple[str, str, str]] = [
     ("number_sequences", "採番の状況", "doc_type, period"),
     ("issued_documents", "発行した書類の控えの一覧(ハッシュ値つき)", "issued_at, id"),
     ("audit_logs", "変更の履歴", "id"),
+    ("activity_logs", "閲覧・書き出しの記録(控えや添付を開いた・データを持ち出した)", "id"),
 ]
 
 DOC_FOLDERS = {"quote": "見積書", "order": "注文請書", "invoice": "請求書"}
@@ -224,6 +225,7 @@ def build_export(conn) -> tuple[bytes, str]:
 
 @router.get("")
 def export_all(conn: AdminConn):
+    activity.record(conn, "export_all", "データ一式(CSV・控えPDF・添付)の書き出し")
     data, name = build_export(conn)
     filename = f"{name}_データ一式_{today():%Y%m%d}.zip"
     return Response(

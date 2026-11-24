@@ -25,7 +25,7 @@ from psycopg import Connection, errors
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field, field_validator
 
-from app import storage
+from app import activity, storage
 from app.auth import AdminConn, TenantConn
 from app.clock import today
 from app.domain import workflow as wf
@@ -857,6 +857,9 @@ def get_attachment(request_id: UUID, attachment_id: UUID, conn: TenantConn):
         data = storage.read(att["storage_path"])
     except (OSError, ValueError):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "添付ファイルが見つかりません") from None
+    req = conn.execute("SELECT request_number, title FROM app.requests WHERE id = %s", (request_id,)).fetchone()
+    activity.record(conn, "open_attachment", f"申請 {req['request_number'] or req['title']} の添付「{att['file_name']}」",
+                    "request_attachment", attachment_id)
     return Response(
         content=data,
         media_type=att["content_type"],

@@ -17,6 +17,7 @@ from psycopg import Connection
 from pydantic import BaseModel, Field, field_validator
 
 from app import storage
+from app import activity
 from app.auth import TenantConn
 from app.clock import today
 from app.documents import company, get_customer, pdf_response, read_lines, write_lines
@@ -822,4 +823,5 @@ def invoice_pdf(invoice_id: UUID, conn: TenantConn):
     ).fetchone()
     if doc is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "発行時の控えが見つかりません")
+    activity.record(conn, "open_document", f"請求書 {invoice['invoice_number']} 第{invoice['version']}版", "invoice", invoice_id)
     return pdf_response(storage.read(doc["storage_path"]), f"請求書_{invoice['invoice_number']}_第{invoice['version']}版.pdf")

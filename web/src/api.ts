@@ -658,6 +658,46 @@ export type RequestInput = {
 
 export type UploadFile = { file_name: string; content_type: string | null; content_base64: string };
 
+// ---------------------------------------------------------------------
+// 操作の履歴(管理者)
+// ---------------------------------------------------------------------
+export type LogChange = { field: string; label: string; before: string | null; after: string | null };
+
+export type ChangeLogItem = {
+  id: number;
+  created_at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  table_name: string;
+  table_label: string;
+  record_id: string;
+  record_label: string;
+  action: "insert" | "update" | "delete";
+  action_label: string;
+  changes: LogChange[];
+  request_id: string | null;
+};
+
+export type ActivityLogItem = {
+  id: number;
+  created_at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  action_label: string;
+  summary: string;
+  target_type: string | null;
+  target_id: string | null;
+  request_id: string | null;
+};
+
+export type LogPage<T> = { items: T[]; next_before_id: number | null };
+export type LogFilters = { tables: { value: string; label: string }[]; actions: { value: string; label: string }[] };
+export type LogQuery = Partial<Record<"table" | "action" | "actor_id" | "record_id" | "date_from" | "date_to", string>> & {
+  before_id?: number;
+  include_lines?: boolean;
+};
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -706,12 +746,12 @@ async function send(path: string, init: RequestInit = {}, tenantId?: string): Pr
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new ApiError(res.status, errorMessage(res.status, body?.detail));
+    throw new ApiError(res.status, errorMessage(res.status, body?.detail, res.headers.get("X-Request-ID")));
   }
   return res;
 }
 
-function errorMessage(status: number, detail: unknown): string {
+function errorMessage(status: number, detail: unknown, requestId: string | null = null): string {
   if (typeof detail === "string") return detail;
   if (status === 422 && Array.isArray(detail)) {
     // 入力チェックで日本語の理由を返しているときは、それをそのまま出す
@@ -719,7 +759,8 @@ function errorMessage(status: number, detail: unknown): string {
     if (typeof msg === "string" && /[ぁ-んァ-ヶ一-龠]/.test(msg)) return msg.replace(/^Value error, /, "");
     return "入力内容に誤りがあります。品名・数量・単価を確認してください。";
   }
-  return `エラーが発生しました(${status})`;
+  // 問い合わせのときにログを探せるよう、リクエストの番号を添える
+  return `エラーが発生しました(${status})${requestId ? `。番号: ${requestId}` : ""}`;
 }
 
 async function json<T>(path: string, init: RequestInit = {}, tenantId?: string): Promise<T> {
@@ -744,6 +785,10 @@ export const api = {
   updateApproverGroup: (t: string, id: string, body: { name: string; user_ids: string[] }) =>
     json<ApproverGroup>(`/api/approver-groups/${id}`, { method: "PUT", body: JSON.stringify(body) }, t),
   deleteApproverGroup: (t: string, id: string) => json<void>(`/api/approver-groups/${id}`, { method: "DELETE" }, t),
+
+  logFilters: (t: string) => json<LogFilters>("/api/logs/filters", {}, t),
+  changeLogs: (t: string, q: LogQuery) => json<LogPage<ChangeLogItem>>(`/api/logs/changes?${logQuery(q)}`, {}, t),
+  activityLogs: (t: string, q: LogQuery) => json<LogPage<ActivityLogItem>>(`/api/logs/activities?${logQuery(q)}`, {}, t),
 
   requestTypes: (t: string, includeInactive = false) =>
     json<RequestType[]>(`/api/request-types${includeInactive ? "?include_inactive=true" : ""}`, {}, t),
@@ -963,6 +1008,12 @@ async function openPdf(t: string, path: string, filename: string, preopened?: Wi
     tab?.close();
     throw e;
   }
+}
+
+function logQuery(q: LogQuery): string {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") params.set(k, String(v));
+  return params.toString();
 }
 
 /** ファイルをダウンロードする。ファイル名は Content-Disposition に従う */

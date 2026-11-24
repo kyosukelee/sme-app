@@ -15,6 +15,7 @@ from psycopg import Connection
 from pydantic import BaseModel, Field
 
 from app import storage
+from app import activity
 from app.auth import TenantConn
 from app.clock import today
 from app.documents import company, get_customer, pdf_response, read_lines, write_lines
@@ -416,4 +417,5 @@ def acknowledgment_pdf(order_id: UUID, conn: TenantConn, preview: bool = False, 
     ).fetchone()
     if doc is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "注文請書はまだ発行されていません")
+    activity.record(conn, "open_document", f"注文請書 {order['order_number']} 第{doc['version']}版", "order", order_id)
     return pdf_response(storage.read(doc["storage_path"]), f"注文請書_{order['order_number']}_第{doc['version']}版.pdf")

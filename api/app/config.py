@@ -35,5 +35,9 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = 60
     ai_max_pages: int = 10
 
+    # アプリのログ(app/logs.py)。json: 1行1件の JSON(ログの保管先で検索しやすい) / text: 開発中に読みやすい形
+    log_format: Literal["json", "text"] = "json"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+
 
 settings = Settings()

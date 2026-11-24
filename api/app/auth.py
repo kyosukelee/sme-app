@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, status
 from psycopg import Connection
 
+from app import logs
 from app.config import settings
 from app.db import scoped_transaction
 
@@ -21,11 +22,11 @@ def current_user_id(
     このヘッダーは開発モードのときだけ読み、本番では無視する。
     """
     if settings.auth_mode == "dev":
-        if dev_user is not None:
-            return dev_user
-        if settings.dev_user_id is None:
+        user = dev_user if dev_user is not None else settings.dev_user_id
+        if user is None:
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "DEV_USER_ID が設定されていません")
-        return settings.dev_user_id
+        logs.set_identity(user_id=user)  # アプリのログに誰の操作かを載せる
+        return user
     # TODO: Authorization ヘッダーの Supabase Auth トークンを検証し、利用者IDを取り出す
     raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, "Supabase Auth の検証はまだ実装していません")
 
@@ -44,6 +45,7 @@ def tenant_conn(
     tenant_id: Annotated[UUID, Header(alias="X-Tenant-Id")],
 ) -> Iterator[Connection]:
     """画面で選んだ会社の接続。所属していない会社なら 403 にする。"""
+    logs.set_identity(tenant_id=tenant_id)
     with scoped_transaction(user_id, tenant_id) as conn:
         row = conn.execute(
             """

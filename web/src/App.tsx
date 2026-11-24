@@ -12,6 +12,7 @@ import InvoicePage from "./pages/InvoicePage";
 import Items from "./pages/Items";
 import Journal from "./pages/Journal";
 import Members from "./pages/Members";
+import OperationLogs from "./pages/OperationLogs";
 import OrderList from "./pages/OrderList";
 import OrderPage from "./pages/OrderPage";
 import QuoteEditor from "./pages/QuoteEditor";
@@ -55,6 +56,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { label: "自社情報", href: "#/settings/company", section: "/settings/company" },
       { label: "社員・担当役割", href: "#/settings/members", section: "/settings/members" },
       { label: "申請種別・承認ルート", href: "#/settings/request-types", section: "/settings/request-types" },
+      { label: "操作の履歴", href: "#/settings/logs", section: "/settings/logs" },
     ],
   },
 ];
@@ -259,6 +261,7 @@ function Page({ path, tenantId, isAdmin, todo }: { path: string; tenantId: strin
   if (path === "/reconcile") return <Reconcile tenantId={tenantId} />;
   if (path === "/journal") return <Journal tenantId={tenantId} />;
   if (path === "/settings/members") return <Members tenantId={tenantId} />;
+  if (path === "/settings/logs") return <OperationLogs key={`logs-${tenantId}`} tenantId={tenantId} />;
   if (path === "/receipts" || path.startsWith("/receipts?")) {
     const customer = new URLSearchParams(path.split("?")[1] ?? "").get("customer");
     return <Receipts key={`receipts-${tenantId}`} tenantId={tenantId} initialCustomerId={customer} />;

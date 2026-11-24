@@ -22,6 +22,7 @@ from psycopg import Connection
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field, model_validator
 
+from app import activity
 from app.auth import AdminConn, TenantConn
 from app.clock import today
 from app.domain.journal import (
@@ -433,6 +434,7 @@ def download_export(export_id: UUID, conn: TenantConn):
         data, filename, replaced = render(export["software"], entries, settings)
     except SettingsProblem as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from None
+    activity.record(conn, "download_journal", f"仕訳CSV「{filename}」({len(entries)}件)", "journal_export", export_id)
     return Response(
         content=data,
         media_type="text/csv; charset=shift_jis",

@@ -5,10 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app import errors
+from app import errors, logs
 from app.config import settings
 from app.db import pool
-from app.routers import archive, bank, company, customers, export, imports, invoices, items, journal, me, members, orders, pricing, quotes, receipts, requests
+from app.routers import archive, bank, company, customers, export, imports, invoices, items, journal, logs as log_views, me, members, orders, pricing, quotes, receipts, requests
 
 
 @asynccontextmanager
@@ -19,8 +19,10 @@ async def lifespan(_app: FastAPI):
     pool.close()
 
 
+logs.configure()
 app = FastAPI(title="見積・受注・請求 API", lifespan=lifespan)
 errors.register(app)
+logs.install(app)
 app.include_router(me.router)
 app.include_router(customers.router)
 app.include_router(members.router)
@@ -37,6 +39,7 @@ app.include_router(journal.router)
 app.include_router(company.router)
 app.include_router(archive.router)
 app.include_router(export.router)
+app.include_router(log_views.router)
 
 
 @app.get("/api/health")
